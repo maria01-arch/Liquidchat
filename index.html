@@ -275,7 +275,9 @@
   .messages-area::-webkit-scrollbar-track { background: transparent; }
   .messages-area::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
 
-  .msg-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 2px; max-width: 100%; }
+  .msg-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 2px; width: 100%; }
+  .msg-row > div { max-width: 70%; min-width: 0; }
+  .msg-row.mine > div { margin-left: auto; }
   .msg-row.mine { flex-direction: row-reverse; }
 
   .msg-sender-avatar {
@@ -488,7 +490,10 @@
     <div class="sidebar-footer">
       <div class="my-avatar" id="my-avatar"></div>
       <div class="my-name" id="my-name"></div>
-      <button class="logout-btn" onclick="logout()">Sign Out</button>
+      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;">
+        <button class="logout-btn" onclick="logout()" title="Sign out of this account">Sign Out</button>
+        <button class="logout-btn" onclick="switchAccount()" title="Sign in with a different account" style="font-size:11px;color:#5b8af5;border-color:rgba(91,138,245,0.3);">+ Account</button>
+      </div>
     </div>
   </div>
 
@@ -600,6 +605,20 @@ async function login() {
 async function logout() {
   await sb.auth.signOut();
   location.reload();
+}
+
+async function switchAccount() {
+  // Sign out current user and show login screen for new account
+  await sb.auth.signOut();
+  currentUser = null;
+  currentProfile = null;
+  currentConversation = null;
+  conversations = [];
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('auth-error').style.display = 'none';
 }
 
 async function initApp(user) {
