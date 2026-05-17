@@ -408,7 +408,9 @@
     width: 36px; height: 36px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: white; flex-shrink: 0;
+    overflow: hidden;
   }
+  .user-item-avatar img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
   .user-item-name { font-size: 14px; font-weight: 500; color: var(--text); }
   .user-item-username { font-size: 12px; color: var(--text3); }
   .user-item-check { margin-left: auto; color: var(--accent); display: none; font-size: 16px; }
@@ -591,8 +593,13 @@ async function initApp(user) {
   const initials = profile?.avatar_initials || profile?.display_name?.slice(0,2).toUpperCase() || '??';
   const color = profile?.avatar_color || '#5b8af5';
   const myAv = document.getElementById('my-avatar');
-  myAv.style.background = color;
-  myAv.textContent = initials;
+  if (profile?.avatar_url) {
+    myAv.innerHTML = '<img src="' + profile.avatar_url + '" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">';
+    myAv.style.background = 'transparent';
+  } else {
+    myAv.style.background = color;
+    myAv.textContent = initials;
+  }
   document.getElementById('my-name').textContent = profile?.display_name || profile?.username || user.email;
   await loadConversations();
   subscribeRealtime();
@@ -613,7 +620,7 @@ async function loadConversations() {
     if (conv.type === 'direct') {
       const { data: members } = await sb.from('lc_members').select('user_id').eq('conversation_id', conv.id).neq('user_id', currentUser.id).limit(1);
       if (members && members[0]) {
-        const { data: op } = await sb.from('profiles').select('id,username,display_name,avatar_color,avatar_initials').eq('id', members[0].user_id).single();
+        const { data: op } = await sb.from('profiles').select('id,username,display_name,avatar_color,avatar_initials,avatar_url').eq('id', members[0].user_id).single();
         conv._otherUser = op;
       }
     }
@@ -633,7 +640,7 @@ function renderChatList(list) {
     const lastTime = conv._lastMsg ? formatTime(conv._lastMsg.created_at) : '';
     const isActive = currentConversation?.id === conv.id ? 'active' : '';
     return `<div class="chat-item ${isActive}" onclick="openConversation('${conv.id}')">
-      <div class="chat-avatar ${isGroup ? 'group' : ''}" style="${isGroup ? 'background:var(--surface3)' : 'background:'+color}">${isGroup ? '👥' : initials}</div>
+      ${isGroup ? '<div class="chat-avatar group" style="background:var(--surface3)">👥</div>' : avatarHtml(conv._otherUser, 46)}
       <div class="chat-info">
         <div class="chat-name">${escHtml(name)}</div>
         <div class="chat-preview">${escHtml(lastText.substring(0,50))}</div>
@@ -657,8 +664,13 @@ async function openConversation(convId) {
   const color = isGroup ? (currentConversation.avatar_color || '#5b8af5') : (currentConversation._otherUser?.avatar_color || '#5b8af5');
   const topAv = document.getElementById('topbar-avatar');
   topAv.className = 'topbar-avatar' + (isGroup ? ' group' : '');
-  topAv.style.background = isGroup ? 'var(--surface3)' : color;
-  topAv.textContent = initials;
+  if (!isGroup && currentConversation._otherUser?.avatar_url) {
+    topAv.innerHTML = '<img src="' + currentConversation._otherUser.avatar_url + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">';
+    topAv.style.background = 'transparent';
+  } else {
+    topAv.style.background = isGroup ? 'var(--surface3)' : color;
+    topAv.textContent = isGroup ? '👥' : initials;
+  }
   document.getElementById('topbar-name').textContent = name;
   if (isGroup) {
     const { count } = await sb.from('lc_members').select('*', { count: 'exact', head: true }).eq('conversation_id', convId);
@@ -673,7 +685,7 @@ async function openConversation(convId) {
 async function loadMessages(convId) {
   const area = document.getElementById('messages-area');
   area.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
-  const { data: messages } = await sb.from('lc_messages').select('*, profiles:sender_id(username,display_name,avatar_color,avatar_initials)').eq('conversation_id', convId).order('created_at', { ascending: true });
+  const { data: messages } = await sb.from('lc_messages').select('*, profiles:sender_id(username,display_name,avatar_color,avatar_initials,avatar_url)').eq('conversation_id', convId).order('created_at', { ascending: true });
   renderMessages(messages || []);
 }
 
@@ -687,14 +699,12 @@ function renderMessages(messages) {
     const date = new Date(msg.created_at).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
     if (date !== lastDate) { html += '<div class="date-divider"><span>' + date + '</span></div>'; lastDate = date; }
     const profile = msg.profiles;
-    const initials = profile?.avatar_initials || profile?.display_name?.slice(0,2).toUpperCase() || '??';
-    const color = profile?.avatar_color || '#5b8af5';
     const senderName = profile?.display_name || profile?.username || 'Unknown';
     const isGroup = currentConversation?.type === 'group';
     const time = formatTime(msg.created_at);
     if (!mine) {
       html += (isGroup ? '<div class="msg-name">' + escHtml(senderName) + '</div>' : '') +
-        '<div class="msg-row"><div class="msg-sender-avatar" style="background:' + color + '">' + initials + '</div>' +
+        '<div class="msg-row">' + avatarHtml(profile, 28, 'msg-sender-avatar') + '<div>
         '<div><div class="msg-bubble theirs">' + escHtml(msg.content) + '</div><div class="msg-time">' + time + '</div></div></div>';
     } else {
       html += '<div class="msg-row mine"><div><div class="msg-bubble mine">' + escHtml(msg.content) + '</div><div class="msg-time">' + time + '</div></div></div>';
@@ -750,13 +760,13 @@ function closeDMModal() { document.getElementById('dm-modal').style.display = 'n
 async function searchUsers() {
   const q = document.getElementById('dm-search').value.trim();
   if (!q) { document.getElementById('dm-user-list').innerHTML = ''; return; }
-  const { data: users } = await sb.from('profiles').select('id,username,display_name,avatar_color,avatar_initials').neq('id', currentUser.id).or('username.ilike.%' + q + '%,display_name.ilike.%' + q + '%').limit(10);
+  const { data: users } = await sb.from('profiles').select('id,username,display_name,avatar_color,avatar_initials,avatar_url').neq('id', currentUser.id).or('username.ilike.%' + q + '%,display_name.ilike.%' + q + '%').limit(10);
   const list = document.getElementById('dm-user-list');
   if (!users?.length) { list.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px;">No users found.</div>'; return; }
   list.innerHTML = users.map((u, i) => {
     const sel = selectedDMUser?.id === u.id ? 'selected' : '';
     return '<div class="user-item ' + sel + '" data-idx="' + i + '" onclick="selectDMUser(dmSearchResults[this.dataset.idx])">' +
-      '<div class="user-item-avatar" style="background:' + (u.avatar_color||'#5b8af5') + '">' + (u.avatar_initials||u.display_name?.slice(0,2).toUpperCase()||'??') + '</div>' +
+      avatarHtml(u, 36, 'user-item-avatar') +
       '<div><div class="user-item-name">' + escHtml(u.display_name||u.username) + '</div><div class="user-item-username">@' + escHtml(u.username) + '</div></div>' +
       '<span class="user-item-check">✓</span></div>';
   }).join('');
@@ -810,13 +820,13 @@ function closeGroupModal() { document.getElementById('group-modal').style.displa
 async function searchGroupUsers() {
   const q = document.getElementById('group-search').value.trim();
   if (!q) { document.getElementById('group-user-list').innerHTML = ''; return; }
-  const { data: users } = await sb.from('profiles').select('id,username,display_name,avatar_color,avatar_initials').neq('id', currentUser.id).or('username.ilike.%' + q + '%,display_name.ilike.%' + q + '%').limit(10);
+  const { data: users } = await sb.from('profiles').select('id,username,display_name,avatar_color,avatar_initials,avatar_url').neq('id', currentUser.id).or('username.ilike.%' + q + '%,display_name.ilike.%' + q + '%').limit(10);
   const list = document.getElementById('group-user-list');
   if (!users?.length) { list.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px;">No users found.</div>'; return; }
   list.innerHTML = users.map((u, i) => {
     const sel = selectedGroupUsers.find(s => s.id === u.id) ? 'selected' : '';
     return '<div class="user-item ' + sel + '" data-idx="' + i + '" onclick="toggleGroupUser(groupSearchResults[this.dataset.idx])">' +
-      '<div class="user-item-avatar" style="background:' + (u.avatar_color||'#5b8af5') + '">' + (u.avatar_initials||u.display_name?.slice(0,2).toUpperCase()||'??') + '</div>' +
+      '<div class="user-item-avatar" style="background:' + (u.avatar_color||'#5b8af5') + '">' + avatarHtml(u, 36, 'user-item-avatar') +
       '<div><div class="user-item-name">' + escHtml(u.display_name||u.username) + '</div><div class="user-item-username">@' + escHtml(u.username) + '</div></div>' +
       '<span class="user-item-check">✓</span></div>';
   }).join('');
@@ -859,6 +869,18 @@ function formatTime(iso) {
 function escHtml(str) {
   if (!str) return '';
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function avatarHtml(profile, size, extraClass='', extraStyle='') {
+  const color = profile?.avatar_color || '#5b8af5';
+  const initials = profile?.avatar_initials || profile?.display_name?.slice(0,2).toUpperCase() || '??';
+  const url = profile?.avatar_url;
+  const sizeStyle = 'width:' + size + 'px;height:' + size + 'px;';
+  if (url) {
+    return '<img src="' + escHtml(url) + '" style="' + sizeStyle + 'border-radius:50%;object-fit:cover;flex-shrink:0;' + extraStyle + '" class="' + extraClass + '" onerror="this.style.display='none';this.nextSibling.style.display='flex'">' +
+           '<div class="' + extraClass + '" style="' + sizeStyle + 'border-radius:50%;background:' + color + ';display:none;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:700;font-size:' + Math.floor(size*0.35) + 'px;color:white;flex-shrink:0;' + extraStyle + '">' + initials + '</div>';
+  }
+  return '<div class="' + extraClass + '" style="' + sizeStyle + 'border-radius:50%;background:' + color + ';display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:700;font-size:' + Math.floor(size*0.35) + 'px;color:white;flex-shrink:0;' + extraStyle + '">' + initials + '</div>';
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
