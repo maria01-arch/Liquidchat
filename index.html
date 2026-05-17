@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LiquidChat 🫟 by OmniSphere Labs</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -553,6 +553,20 @@ const SUPABASE_URL = 'https://qjhxvefwsexlalxpkbps.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqaHh2ZWZ3c2V4bGFseHBrYnBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMTA2MDMsImV4cCI6MjA5Mzg4NjYwM30.Yf-3OrP1AfzvBbldLJEJiU-h-MWfntUgvEnY1OFtJBs';
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Test Supabase connection on load
+window.addEventListener('load', async () => {
+  try {
+    const { data, error } = await sb.from('profiles').select('id').limit(1);
+    if (error) {
+      document.getElementById('auth-error').textContent = 'Connection error: ' + error.message;
+      document.getElementById('auth-error').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('auth-error').textContent = 'Failed to connect: ' + e.message;
+    document.getElementById('auth-error').style.display = 'block';
+  }
+});
 
 let currentUser = null;
 let currentProfile = null;
