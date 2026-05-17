@@ -858,10 +858,21 @@ function escHtml(str) {
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
-  if (session?.user && document.getElementById('auth-screen').style.display !== 'none') {
+  if (event === 'SIGNED_IN' && session?.user) {
+    if (document.getElementById('app').style.display === 'none') {
+      await initApp(session.user);
+    }
+  }
+  if (event === 'SIGNED_OUT') { location.reload(); }
+});
+
+// Auto-login if session already exists
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
     await initApp(session.user);
   }
-});
+})();
 </script>
 </body>
 </html>
