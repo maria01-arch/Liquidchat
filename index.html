@@ -456,7 +456,7 @@
       <input type="email" id="login-email" class="auth-input" placeholder="your@email.com">
       <div class="auth-label">Password</div>
       <input type="password" id="login-password" class="auth-input" placeholder="••••••••">
-      <button class="auth-btn" onclick="login()">Sign In to LiquidChat</button>
+      <button class="auth-btn" id="login-btn" onclick="login()">Sign In to LiquidChat</button>
       <div class="auth-footer">Use your <strong>Sphere</strong> account to log in</div>
     </div>
   </div>
@@ -554,19 +554,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Test Supabase connection on load
-window.addEventListener('load', async () => {
-  try {
-    const { data, error } = await sb.from('profiles').select('id').limit(1);
-    if (error) {
-      document.getElementById('auth-error').textContent = 'Connection error: ' + error.message;
-      document.getElementById('auth-error').style.display = 'block';
-    }
-  } catch(e) {
-    document.getElementById('auth-error').textContent = 'Failed to connect: ' + e.message;
-    document.getElementById('auth-error').style.display = 'block';
-  }
-});
+
 
 let currentUser = null;
 let currentProfile = null;
@@ -734,7 +722,7 @@ function renderMessages(messages) {
     const time = formatTime(msg.created_at);
     if (!mine) {
       html += (isGroup ? '<div class="msg-name">' + escHtml(senderName) + '</div>' : '') +
-        '<div class="msg-row">' + avatarHtml(profile, 28, 'msg-sender-avatar') + '<div>
+        '<div class="msg-row">' + avatarHtml(profile, 28, 'msg-sender-avatar') + '<div>'
         '<div><div class="msg-bubble theirs">' + escHtml(msg.content) + '</div><div class="msg-time">' + time + '</div></div></div>';
     } else {
       html += '<div class="msg-row mine"><div><div class="msg-bubble mine">' + escHtml(msg.content) + '</div><div class="msg-time">' + time + '</div></div></div>';
@@ -901,16 +889,19 @@ function escHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function avatarHtml(profile, size, extraClass='', extraStyle='') {
-  const color = profile?.avatar_color || '#5b8af5';
-  const initials = profile?.avatar_initials || profile?.display_name?.slice(0,2).toUpperCase() || '??';
-  const url = profile?.avatar_url;
-  const sizeStyle = 'width:' + size + 'px;height:' + size + 'px;';
+function avatarHtml(profile, size, extraClass, extraStyle) {
+  extraClass = extraClass || '';
+  extraStyle = extraStyle || '';
+  const color = (profile && profile.avatar_color) ? profile.avatar_color : '#5b8af5';
+  const initials = (profile && profile.avatar_initials) ? profile.avatar_initials : (profile && profile.display_name) ? profile.display_name.slice(0,2).toUpperCase() : '??';
+  const url = profile ? profile.avatar_url : null;
+  const s = size + 'px';
+  const fontsize = Math.floor(size*0.35) + 'px';
+  const baseStyle = 'width:' + s + ';height:' + s + ';flex-shrink:0;' + extraStyle;
   if (url) {
-    return '<img src="' + escHtml(url) + '" style="' + sizeStyle + 'border-radius:50%;object-fit:cover;flex-shrink:0;' + extraStyle + '" class="' + extraClass + '" onerror="this.style.display='none';this.nextSibling.style.display='flex'">' +
-           '<div class="' + extraClass + '" style="' + sizeStyle + 'border-radius:50%;background:' + color + ';display:none;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:700;font-size:' + Math.floor(size*0.35) + 'px;color:white;flex-shrink:0;' + extraStyle + '">' + initials + '</div>';
+    return '<img src="' + escHtml(url) + '" style="' + baseStyle + 'border-radius:50%;object-fit:cover;" class="' + extraClass + '">';
   }
-  return '<div class="' + extraClass + '" style="' + sizeStyle + 'border-radius:50%;background:' + color + ';display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:700;font-size:' + Math.floor(size*0.35) + 'px;color:white;flex-shrink:0;' + extraStyle + '">' + initials + '</div>';
+  return '<div class="' + extraClass + '" style="' + baseStyle + 'border-radius:50%;background:' + color + ';display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:700;font-size:' + fontsize + ';color:white;">' + initials + '</div>';
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
