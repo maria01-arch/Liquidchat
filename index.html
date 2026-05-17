@@ -285,16 +285,16 @@
   }
 
   .msg-bubble {
-    min-width: 48px;
-    overflow-wrap: break-word;
-    white-space: pre-wrap;
-    display: inline-block;
     max-width: 65%;
+    min-width: 60px;
     padding: 10px 14px;
     border-radius: 18px;
     font-size: 15px;
     line-height: 1.5;
-    word-break: break-word;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    display: block;
   }
   .msg-bubble.theirs { background: var(--surface2); color: var(--text); border-bottom-left-radius: 4px; }
   .msg-bubble.mine {
@@ -722,7 +722,7 @@ function renderMessages(messages) {
     const time = formatTime(msg.created_at);
     if (!mine) {
       html += (isGroup ? '<div class="msg-name">' + escHtml(senderName) + '</div>' : '') +
-        '<div class="msg-row">' + avatarHtml(profile, 28, 'msg-sender-avatar') + '<div>'
+        '<div class="msg-row">' + avatarHtml(profile, 28, 'msg-sender-avatar') +
         '<div><div class="msg-bubble theirs">' + escHtml(msg.content) + '</div><div class="msg-time">' + time + '</div></div></div>';
     } else {
       html += '<div class="msg-row mine"><div><div class="msg-bubble mine">' + escHtml(msg.content) + '</div><div class="msg-time">' + time + '</div></div></div>';
