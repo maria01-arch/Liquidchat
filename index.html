@@ -870,13 +870,29 @@ sb.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_OUT') { location.reload(); }
 });
 
-// Auto-login if session already exists
+// Auto-login if session already exists, then handle ?dm= param
 (async () => {
   const { data: { session } } = await sb.auth.getSession();
   if (session?.user) {
     await initApp(session.user);
+    await handleDMParam();
   }
 })();
+
+async function handleDMParam() {
+  const params = new URLSearchParams(window.location.search);
+  const dmUserId = params.get('dm');
+  if (!dmUserId || !currentUser) return;
+  if (dmUserId === currentUser.id) return;
+  const { data: otherUser } = await sb.from('profiles')
+    .select('id, username, display_name, avatar_color, avatar_initials')
+    .eq('id', dmUserId)
+    .single();
+  if (!otherUser) return;
+  selectedDMUser = otherUser;
+  await startDM();
+  window.history.replaceState({}, '', '/');
+}
 </script>
 </body>
 </html>
