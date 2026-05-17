@@ -555,6 +555,8 @@ let conversations = [];
 let selectedDMUser = null;
 let selectedGroupUsers = [];
 let realtimeChannel = null;
+let dmSearchResults = [];
+let groupSearchResults = [];
 
 async function login() {
   const email = document.getElementById('login-email').value.trim();
@@ -747,34 +749,48 @@ async function searchUsers() {
   const { data: users } = await sb.from('profiles').select('id,username,display_name,avatar_color,avatar_initials').neq('id', currentUser.id).or('username.ilike.%' + q + '%,display_name.ilike.%' + q + '%').limit(10);
   const list = document.getElementById('dm-user-list');
   if (!users?.length) { list.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px;">No users found.</div>'; return; }
-  list.innerHTML = users.map(u => {
+  list.innerHTML = users.map((u, i) => {
     const sel = selectedDMUser?.id === u.id ? 'selected' : '';
-    return '<div class="user-item ' + sel + '" onclick=\'selectDMUser(' + JSON.stringify(u) + ')\'>' +
+    return '<div class="user-item ' + sel + '" data-idx="' + i + '" onclick="selectDMUser(dmSearchResults[this.dataset.idx])">' +
       '<div class="user-item-avatar" style="background:' + (u.avatar_color||'#5b8af5') + '">' + (u.avatar_initials||u.display_name?.slice(0,2).toUpperCase()||'??') + '</div>' +
       '<div><div class="user-item-name">' + escHtml(u.display_name||u.username) + '</div><div class="user-item-username">@' + escHtml(u.username) + '</div></div>' +
       '<span class="user-item-check">✓</span></div>';
   }).join('');
+  dmSearchResults = users;
 }
 
 function selectDMUser(user) { selectedDMUser = user; searchUsers(); }
 
 async function startDM() {
-  if (!selectedDMUser) return;
-  const { data: existing } = await sb.from('lc_members').select('conversation_id').eq('user_id', currentUser.id);
-  if (existing) {
-    for (const m of existing) {
-      const { data: conv } = await sb.from('lc_conversations').select('*').eq('id', m.conversation_id).eq('type', 'direct').single();
-      if (conv) {
-        const { data: other } = await sb.from('lc_members').select('user_id').eq('conversation_id', conv.id).eq('user_id', selectedDMUser.id).single();
-        if (other) { closeDMModal(); await loadConversations(); await openConversation(conv.id); return; }
+  if (!selectedDMUser) { alert('Please select a user first.'); return; }
+  try {
+    // Check if a direct conversation already exists between the two users
+    const { data: myMemberships } = await sb.from('lc_members').select('conversation_id').eq('user_id', currentUser.id);
+    if (myMemberships && myMemberships.length > 0) {
+      const convIds = myMemberships.map(m => m.conversation_id);
+      const { data: directConvs } = await sb.from('lc_conversations').select('id').eq('type', 'direct').in('id', convIds);
+      if (directConvs && directConvs.length > 0) {
+        const directIds = directConvs.map(c => c.id);
+        const { data: sharedConv } = await sb.from('lc_members').select('conversation_id').eq('user_id', selectedDMUser.id).in('conversation_id', directIds).limit(1);
+        if (sharedConv && sharedConv.length > 0) {
+          closeDMModal();
+          await loadConversations();
+          await openConversation(sharedConv[0].conversation_id);
+          return;
+        }
       }
     }
-  }
-  const { data: newConv } = await sb.from('lc_conversations').insert({ type: 'direct', created_by: currentUser.id }).select().single();
-  await sb.from('lc_members').insert([{ conversation_id: newConv.id, user_id: currentUser.id, role: 'admin' }, { conversation_id: newConv.id, user_id: selectedDMUser.id, role: 'member' }]);
-  closeDMModal();
-  await loadConversations();
-  await openConversation(newConv.id);
+    // Create new DM conversation
+    const { data: newConv, error } = await sb.from('lc_conversations').insert({ type: 'direct', created_by: currentUser.id }).select().single();
+    if (error) { alert('Error creating chat: ' + error.message); return; }
+    await sb.from('lc_members').insert([
+      { conversation_id: newConv.id, user_id: currentUser.id, role: 'admin' },
+      { conversation_id: newConv.id, user_id: selectedDMUser.id, role: 'member' }
+    ]);
+    closeDMModal();
+    await loadConversations();
+    await openConversation(newConv.id);
+  } catch(e) { alert('Something went wrong: ' + e.message); }
 }
 
 function openGroupModal() {
@@ -793,13 +809,14 @@ async function searchGroupUsers() {
   const { data: users } = await sb.from('profiles').select('id,username,display_name,avatar_color,avatar_initials').neq('id', currentUser.id).or('username.ilike.%' + q + '%,display_name.ilike.%' + q + '%').limit(10);
   const list = document.getElementById('group-user-list');
   if (!users?.length) { list.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px;">No users found.</div>'; return; }
-  list.innerHTML = users.map(u => {
+  list.innerHTML = users.map((u, i) => {
     const sel = selectedGroupUsers.find(s => s.id === u.id) ? 'selected' : '';
-    return '<div class="user-item ' + sel + '" onclick=\'toggleGroupUser(' + JSON.stringify(u) + ')\'>' +
+    return '<div class="user-item ' + sel + '" data-idx="' + i + '" onclick="toggleGroupUser(groupSearchResults[this.dataset.idx])">' +
       '<div class="user-item-avatar" style="background:' + (u.avatar_color||'#5b8af5') + '">' + (u.avatar_initials||u.display_name?.slice(0,2).toUpperCase()||'??') + '</div>' +
       '<div><div class="user-item-name">' + escHtml(u.display_name||u.username) + '</div><div class="user-item-username">@' + escHtml(u.username) + '</div></div>' +
       '<span class="user-item-check">✓</span></div>';
   }).join('');
+  groupSearchResults = users;
 }
 
 function toggleGroupUser(user) {
