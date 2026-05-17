@@ -275,7 +275,7 @@
   .messages-area::-webkit-scrollbar-track { background: transparent; }
   .messages-area::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
 
-  .msg-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 2px; }
+  .msg-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 2px; max-width: 100%; }
   .msg-row.mine { flex-direction: row-reverse; }
 
   .msg-sender-avatar {
@@ -285,6 +285,10 @@
   }
 
   .msg-bubble {
+    min-width: 48px;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    display: inline-block;
     max-width: 65%;
     padding: 10px 14px;
     border-radius: 18px;
