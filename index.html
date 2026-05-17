@@ -892,8 +892,30 @@ sb.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_OUT') { location.reload(); }
 });
 
-// Auto-login if session already exists, then handle ?dm= param
+// Auto-login - check URL token first, then existing session
 (async () => {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const refresh = params.get('refresh');
+
+  if (token && refresh) {
+    // Set session from Sphere token
+    const { data, error } = await sb.auth.setSession({
+      access_token: token,
+      refresh_token: refresh
+    });
+    if (data?.user) {
+      // Clean URL but keep dm param
+      const dmId = params.get('dm');
+      const newUrl = dmId ? '/?dm=' + dmId : '/';
+      window.history.replaceState({}, '', newUrl);
+      await initApp(data.user);
+      await handleDMParam();
+      return;
+    }
+  }
+
+  // No token in URL - check existing session
   const { data: { session } } = await sb.auth.getSession();
   if (session?.user) {
     await initApp(session.user);
