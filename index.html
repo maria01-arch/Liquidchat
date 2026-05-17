@@ -476,7 +476,14 @@
       <div class="header-actions">
         <div class="icon-btn" title="New Direct Message" onclick="openDMModal()">✉️</div>
         <div class="icon-btn" title="New Group Chat" onclick="openGroupModal()">👥</div>
+        <div class="icon-btn" title="Account" onclick="toggleAccountMenu()" id="account-btn">👤</div>
       </div>
+    </div>
+    <div id="account-menu" style="display:none;background:var(--surface2);border-bottom:1px solid var(--border);padding:12px 16px;flex-direction:column;gap:8px;">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:4px;">Signed in as</div>
+      <div id="account-email" style="font-size:13px;color:var(--text2);margin-bottom:8px;"></div>
+      <button onclick="switchAccount()" style="width:100%;background:var(--accent-glow);border:1px solid var(--accent);border-radius:8px;padding:10px;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;">＋ Add Account</button>
+      <button onclick="logout()" style="width:100%;background:rgba(245,91,91,0.1);border:1px solid rgba(245,91,91,0.3);border-radius:8px;padding:10px;color:var(--danger);font-size:13px;font-weight:600;cursor:pointer;">Sign Out</button>
     </div>
     <div class="search-wrap">
       <div class="search-wrap-inner">
@@ -607,6 +614,12 @@ async function logout() {
   location.reload();
 }
 
+function toggleAccountMenu() {
+  const menu = document.getElementById('account-menu');
+  const isVisible = menu.style.display === 'flex';
+  menu.style.display = isVisible ? 'none' : 'flex';
+}
+
 async function switchAccount() {
   // Sign out current user and show login screen for new account
   await sb.auth.signOut();
@@ -638,6 +651,8 @@ async function initApp(user) {
     myAv.textContent = initials;
   }
   document.getElementById('my-name').textContent = profile?.display_name || profile?.username || user.email;
+  const emailEl = document.getElementById('account-email');
+  if (emailEl) emailEl.textContent = user.email;
   await loadConversations();
   subscribeRealtime();
 }
@@ -742,9 +757,9 @@ function renderMessages(messages) {
     if (!mine) {
       html += (isGroup ? '<div class="msg-name">' + escHtml(senderName) + '</div>' : '') +
         '<div class="msg-row">' + avatarHtml(profile, 28, 'msg-sender-avatar') +
-        '<div><div class="msg-bubble theirs">' + escHtml(msg.content) + '</div><div class="msg-time">' + time + '</div></div></div>';
+        '<div style="max-width:70%;"><div class="msg-bubble theirs">' + escHtml(msg.content) + '</div><div class="msg-time">' + time + '</div></div></div>';
     } else {
-      html += '<div class="msg-row mine"><div><div class="msg-bubble mine">' + escHtml(msg.content) + '</div><div class="msg-time">' + time + '</div></div></div>';
+      html += '<div class="msg-row mine"><div style="max-width:70%;margin-left:auto;"><div class="msg-bubble mine">' + escHtml(msg.content) + '</div><div class="msg-time" style="text-align:right;">' + time + '</div></div></div>';
     }
   });
   area.innerHTML = html;
