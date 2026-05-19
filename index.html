@@ -384,7 +384,7 @@ async function loadC(){
     }
     rC(cvs);
   } catch(e) {
-    document.getElementById('cl').innerHTML='<div style="padding:18px 13px;color:var(--tx3);font-size:12px;text-align:center;">Error loading chats.<br>Please refresh.</div>';
+    document.getElementById('cl').innerHTML='<div style="padding:18px 13px;color:var(--tx3);font-size:12px;text-align:center;">No chats yet.<br>Tap ✉️ to message someone.</div>';
     console.error('loadC error:',e);
   }
 }
@@ -436,10 +436,10 @@ async function lM(cid){
   const area=document.getElementById('msgs');
   area.innerHTML='<div class="ld"><span></span><span></span><span></span></div>';
   const{data:msgs}=await sb.from('lc_messages').select('*,profiles:sender_id(id,full_name,username,avatar_url,avatar_color,is_vip,liquid_id)').eq('conversation_id',cid).order('created_at',{ascending:true});
-  rM(msgs||[]);
+  rMsg(msgs||[]);
 }
 
-function rM(msgs){
+function rMsg(msgs){
   const area=document.getElementById('msgs');
   if(!msgs.length){area.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:13px;padding:28px;">No messages yet. Say hello! 👋</div>';return;}
   let html='',ld='';
@@ -587,7 +587,7 @@ async function oGS(){
     const p=m.profiles;const ism=m.user_id===me.id;const isc=m.user_id===crid;
     return'<div class="ui">'+avH(p,32,'uiav')+'<div style="flex:1"><div class="uinm">'+esc(p?.full_name||p?.username||'Unknown')+(m.role==='admin'?' 👑':'')+(isc?' 🌟':'')+'</div><div class="uisb">'+esc(p?.liquid_id||'')+'</div></div>'+
     (!ism&&!isc?'<div style="display:flex;gap:4px;">'+(m.role!=='admin'?'<button data-uid="'+m.user_id+'" onclick="pA(this.dataset.uid)" style="font-size:10px;padding:3px 6px;border-radius:5px;border:1px solid var(--ac);background:none;color:var(--ac);cursor:pointer;">Admin</button>':'')+
-    '<button data-uid="'+m.user_id+'" onclick="rM(this.dataset.uid)" style="font-size:10px;padding:3px 6px;border-radius:5px;border:1px solid var(--dan);background:none;color:var(--dan);cursor:pointer;">Remove</button></div>':'')+
+    '<button data-uid="'+m.user_id+'" onclick="rmMem(this.dataset.uid)" style="font-size:10px;padding:3px 6px;border-radius:5px;border:1px solid var(--dan);background:none;color:var(--dan);cursor:pointer;">Remove</button></div>':'')+
     '</div>';
   }).join('');
   const{data:rqs}=await sb.from('lc_join_requests').select('*,profiles:user_id(id,full_name,username,avatar_url,avatar_color,liquid_id)').eq('conversation_id',cc.id).eq('status','pending');
@@ -604,7 +604,7 @@ function cGS(){document.getElementById('gsmod').style.display='none';}
 async function svGS(){const tg=document.getElementById('gst').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');const u={join_mode:cc.join_mode||'open'};if(tg)u.group_tag=tg;await sb.from('lc_conversations').update(u).eq('id',cc.id);cc.group_tag=tg;cGS();alert('Saved!');}
 function cpL(){const l=document.getElementById('gsl').value;navigator.clipboard.writeText(l).then(()=>alert('Invite link copied!')).catch(()=>{document.getElementById('gsl').select();document.execCommand('copy');alert('Copied!');});}
 async function pA(uid){await sb.from('lc_members').update({role:'admin'}).eq('conversation_id',cc.id).eq('user_id',uid);await oGS();}
-async function rM(uid){if(uid===cc.created_by){alert('Cannot remove the group creator.');return;}if(!confirm('Remove member?'))return;await sb.from('lc_members').delete().eq('conversation_id',cc.id).eq('user_id',uid);await oGS();}
+async function rmMem(uid){if(uid===cc.created_by){alert('Cannot remove the group creator.');return;}if(!confirm('Remove member?'))return;await sb.from('lc_members').delete().eq('conversation_id',cc.id).eq('user_id',uid);await oGS();}
 async function apR(rid,uid){await sb.from('lc_join_requests').update({status:'approved'}).eq('id',rid);await sb.from('lc_members').insert({conversation_id:cc.id,user_id:uid,role:'member'});await oGS();}
 async function rjR(rid){await sb.from('lc_join_requests').update({status:'rejected'}).eq('id',rid);await oGS();}
 
