@@ -515,6 +515,8 @@ function selDU(u){sdmu=u;sDU();}
 
 async function stDM(){
   if(!sdmu)return;
+  cDM();
+  // Check if DM already exists
   const{data:mm}=await sb.from('lc_members').select('conversation_id').eq('user_id',me.id);
   if(mm?.length){
     const mids=mm.map(m=>m.conversation_id);
@@ -522,14 +524,26 @@ async function stDM(){
     if(dc?.length){
       const dids=dc.map(c=>c.id);
       const{data:sh}=await sb.from('lc_members').select('conversation_id').eq('user_id',sdmu.id).in('conversation_id',dids).limit(1);
-      if(sh?.length){cDM();await loadC();await oC(sh[0].conversation_id);return;}
+      if(sh?.length){
+        await loadC();
+        await oC(sh[0].conversation_id);
+        return;
+      }
     }
   }
+  // Create new DM
   const{data:nc,error}=await sb.from('lc_conversations').insert({type:'direct',created_by:me.id}).select().single();
   if(error){alert('Error: '+error.message);return;}
-  await sb.from('lc_members').insert([{conversation_id:nc.id,user_id:me.id,role:'admin'},{conversation_id:nc.id,user_id:sdmu.id,role:'member'}]);
-  cDM();
-  await loadC();
+  await sb.from('lc_members').insert([
+    {conversation_id:nc.id,user_id:me.id,role:'admin'},
+    {conversation_id:nc.id,user_id:sdmu.id,role:'member'}
+  ]);
+  // Manually build the conv object and open directly
+  nc.type='direct';
+  nc._o=sdmu;
+  nc._l=null;
+  cvs.unshift(nc);
+  rC(cvs);
   await oC(nc.id);
 }
 
