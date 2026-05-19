@@ -521,8 +521,14 @@ function aR(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,
 function subRT(){
   if(rtc)sb.removeChannel(rtc);
   rtc=sb.channel('lc-rt').on('postgres_changes',{event:'INSERT',schema:'public',table:'lc_messages'},async(pl)=>{
-    if(cc&&pl.new.conversation_id===cc.id)await lM(cc.id);
-    await loadC();
+    if(cc&&pl.new.conversation_id===cc.id){
+      // Only append if message is from someone else (ours already appended)
+      if(pl.new.sender_id!==me.id){
+        const{data:msg}=await sb.from('lc_messages').select('*,profiles:sender_id(id,full_name,username,avatar_url,avatar_color,liquid_id)').eq('id',pl.new.id).single().catch(()=>({data:null}));
+        if(msg) appendMsg(msg);
+      }
+    }
+    loadC();
   }).subscribe();
 }
 
