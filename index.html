@@ -9,7 +9,7 @@
 <style>
 :root{--bg:#080810;--sf:#0f0f1a;--sf2:#161625;--sf3:#1e1e30;--ac:#6c63ff;--ac2:#ff6584;--ac3:#43e97b;--glow:rgba(108,99,255,0.15);--tx:#eeeeff;--tx2:#8888aa;--tx3:#44445a;--bd:rgba(255,255,255,0.07);--dan:#ff4f6a;--vip:#ffd700;--r:14px;--rs:10px;}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);height:100vh;overflow:hidden;}#auth~*{overflow:hidden;}#auth{overflow-y:auto!important;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-y:auto;}
 ::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--sf3);border-radius:3px;}
 #auth{display:block;min-height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px;background:radial-gradient(ellipse at 20% 20%,rgba(108,99,255,.15) 0%,transparent 55%),radial-gradient(ellipse at 80% 80%,rgba(255,101,132,.1) 0%,transparent 55%),var(--bg);}
 .abox{width:100%;max-width:400px;background:var(--sf);border:1px solid var(--bd);border-radius:24px;padding:36px 28px;box-shadow:0 40px 100px rgba(0,0,0,.6);margin:20px auto;}
@@ -367,6 +367,7 @@ async function initApp(user){
   mp=prof;
   document.getElementById('auth').style.display='none';
   document.getElementById('app').style.display='flex';
+  document.body.style.overflow='hidden';document.body.style.height='100vh';
   const mav=document.getElementById('meav');
   if(prof?.avatar_url){mav.innerHTML='<img src="'+prof.avatar_url+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;">';mav.style.background='transparent';}
   else{mav.style.background=prof?.avatar_color||'#6c63ff';mav.textContent=(prof?.full_name||'??').slice(0,2).toUpperCase();}
@@ -694,7 +695,11 @@ function oIV(url){document.getElementById('ivi').src=url;document.getElementById
 function closeIV(){document.getElementById('imgv').style.display='none';}
 function closeMob(){document.getElementById('cmain').classList.remove('mob');}
 
-(async()=>{const{data:{session}}=await sb.auth.getSession();if(session?.user)await initApp(session.user);})();
+(async()=>{
+  const{data:{session}}=await sb.auth.getSession();
+  if(session?.user) await initApp(session.user);
+  else document.body.style.overflow='auto';
+})();
 sb.auth.onAuthStateChange(async(ev,sess)=>{if(ev==='SIGNED_IN'&&sess?.user&&document.getElementById('app').style.display==='none')await initApp(sess.user);if(ev==='SIGNED_OUT')location.reload();});
 </script>
 </body>
