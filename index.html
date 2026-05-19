@@ -514,7 +514,8 @@ async function sDU(){
 function selDU(u){sdmu=u;sDU();}
 
 async function stDM(){
-  if(!sdmu)return;
+  if(!sdmu){alert('No user selected!');return;}
+  alert('Opening chat with: '+sdmu.full_name+' ID:'+sdmu.id);
   cDM();
   // Check if DM already exists
   const{data:mm}=await sb.from('lc_members').select('conversation_id').eq('user_id',me.id);
