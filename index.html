@@ -367,20 +367,26 @@ async function initApp(user){
 }
 
 async function loadC(){
-  const{data:ms}=await sb.from('lc_members').select('conversation_id').eq('user_id',me.id);
-  if(!ms||!ms.length){document.getElementById('cl').innerHTML='<div style="padding:18px 13px;color:var(--tx3);font-size:12px;text-align:center;line-height:1.7;">No chats yet.<br>Tap ✉️ or 👥 to start.</div>';return;}
-  const ids=ms.map(m=>m.conversation_id);
-  const{data:cs}=await sb.from('lc_conversations').select('*').in('id',ids).order('updated_at',{ascending:false});
-  cvs=cs||[];
-  for(let c of cvs){
-    const{data:lm}=await sb.from('lc_messages').select('content,created_at,message_type').eq('conversation_id',c.id).order('created_at',{ascending:false}).limit(1).single().catch(()=>({data:null}));
-    c._l=lm;
-    if(c.type==='direct'){
-      const{data:om}=await sb.from('lc_members').select('user_id').eq('conversation_id',c.id).neq('user_id',me.id).limit(1);
-      if(om&&om[0]){const{data:op}=await sb.from('profiles').select('*').eq('id',om[0].user_id).single().catch(()=>({data:null}));c._o=op;}
+  try {
+    const{data:ms,error:msErr}=await sb.from('lc_members').select('conversation_id').eq('user_id',me.id);
+    if(msErr) throw msErr;
+    if(!ms||!ms.length){document.getElementById('cl').innerHTML='<div style="padding:18px 13px;color:var(--tx3);font-size:12px;text-align:center;line-height:1.7;">No chats yet.<br>Tap ✉️ to message someone.</div>';return;}
+    const ids=ms.map(m=>m.conversation_id);
+    const{data:cs}=await sb.from('lc_conversations').select('*').in('id',ids).order('updated_at',{ascending:false});
+    cvs=cs||[];
+    for(let c of cvs){
+      const{data:lm}=await sb.from('lc_messages').select('content,created_at,message_type').eq('conversation_id',c.id).order('created_at',{ascending:false}).limit(1).single().catch(()=>({data:null}));
+      c._l=lm;
+      if(c.type==='direct'){
+        const{data:om}=await sb.from('lc_members').select('user_id').eq('conversation_id',c.id).neq('user_id',me.id).limit(1);
+        if(om&&om[0]){const{data:op}=await sb.from('profiles').select('*').eq('id',om[0].user_id).single().catch(()=>({data:null}));c._o=op;}
+      }
     }
+    rC(cvs);
+  } catch(e) {
+    document.getElementById('cl').innerHTML='<div style="padding:18px 13px;color:var(--tx3);font-size:12px;text-align:center;">Error loading chats.<br>Please refresh.</div>';
+    console.error('loadC error:',e);
   }
-  rC(cvs);
 }
 
 function rC(list){
