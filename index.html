@@ -163,20 +163,10 @@ select.fi{cursor:pointer;}
     <button class="abtn" id="lbtn" onclick="doL()">Sign In</button>
   </div>
   <div id="sf" style="display:none">
-    <div class="fl">Profile Picture</div>
-    <div class="avup">
-      <div class="avprev" id="avp">🫟</div>
-      <label class="avlbl" for="avf">📷 Upload Photo</label>
-      <input type="file" id="avf" accept="image/*" onchange="prevAv(this)" style="display:none">
-    </div>
     <div class="fl">Full Name</div><input type="text" id="sn" class="fi" placeholder="Your full name">
     <div class="fl">Username</div><input type="text" id="su" class="fi" placeholder="@username">
     <div class="fl">Email</div><input type="email" id="se" class="fi" placeholder="your@email.com">
     <div class="fl">Password</div><input type="password" id="sp" class="fi" placeholder="Min 6 characters">
-    <div class="fl">Work / Occupation</div><input type="text" id="sw" class="fi" placeholder="What do you do?">
-    <div class="fl">Bio</div><input type="text" id="sb" class="fi" placeholder="A little about you...">
-    <div class="fl">Looking For</div>
-    <select id="slk" class="fi"><option value="">Select...</option><option>Friendship</option><option>Dating</option><option>Networking</option><option>Just Chatting</option><option>Long-term Relationship</option></select>
     <div class="fl">Country</div><input type="text" id="sc" class="fi" placeholder="Your country">
     <button class="abtn" id="sbtn" onclick="doS()">Create Account</button>
   </div>
@@ -329,8 +319,8 @@ async function doS(){
   const btn=document.getElementById('sbtn'),err=document.getElementById('aerr');err.style.display='none';
   const n=document.getElementById('sn').value.trim(),u=document.getElementById('su').value.trim().replace('@','').toLowerCase();
   const e=document.getElementById('se').value.trim(),p=document.getElementById('sp').value;
-  const w=document.getElementById('sw').value.trim(),b=document.getElementById('sb').value.trim();
-  const lk=document.getElementById('slk').value,c=document.getElementById('sc').value.trim();
+  const w='',b='',lk='';
+  const c=document.getElementById('sc').value.trim();
   const avf=document.getElementById('avf').files[0];
   if(!n||!u||!e||!p){err.textContent='Please fill all required fields.';err.style.display='block';return;}
   if(p.length<6){err.textContent='Password must be at least 6 characters.';err.style.display='block';return;}
@@ -339,11 +329,9 @@ async function doS(){
     const{data,error}=await sb.auth.signUp({email:e,password:p});
     if(error){err.textContent=error.message;err.style.display='block';btn.textContent='Create Account';btn.disabled=false;return;}
     await new Promise(r=>setTimeout(r,2000));
-    let avUrl=null;
-    if(avf){const ext=avf.name.split('.').pop();const pt=data.user.id+'/avatar.'+ext;const{data:ud}=await sb.storage.from('avatars').upload(pt,avf,{upsert:true});if(ud){const{data:ul}=sb.storage.from('avatars').getPublicUrl(pt);avUrl=ul.publicUrl;}}
     const cols=['#6c63ff','#ff6584','#43e97b','#f7971e','#2196f3','#e91e63'];
     const col=cols[Math.floor(Math.random()*cols.length)];
-    await sb.from('profiles').update({full_name:n,username:u,work:w,bio:b,looking_for:lk,country:c,avatar_color:col,avatar_url:avUrl}).eq('id',data.user.id);
+    await sb.from('profiles').update({full_name:n,username:u,country:c,avatar_color:col}).eq('id',data.user.id);
     await initApp(data.user);
   }catch(ex){err.textContent='Error: '+ex.message;err.style.display='block';btn.textContent='Create Account';btn.disabled=false;}
 }
@@ -524,9 +512,20 @@ async function stDM(){
       if(sh?.length){cDM();await loadC();await oC(sh[0].conversation_id);return;}
     }
   }
-  const{data:nc}=await sb.from('lc_conversations').insert({type:'direct',created_by:me.id}).select().single();
+  const{data:nc,error}=await sb.from('lc_conversations').insert({type:'direct',created_by:me.id}).select().single();
+  if(error){alert('Error: '+error.message);return;}
   await sb.from('lc_members').insert([{conversation_id:nc.id,user_id:me.id,role:'admin'},{conversation_id:nc.id,user_id:sdmu.id,role:'member'}]);
-  cDM();await loadC();await oC(nc.id);
+  cDM();
+  await loadC();
+  // Find the new conversation in the list and open it
+  const newConv = cvs.find(c=>c.id===nc.id);
+  if(newConv){ await oC(nc.id); }
+  else {
+    // Manually add to cvs and open
+    nc._o = sdmu; nc._l = null; nc.type='direct';
+    cvs.unshift(nc);
+    await oC(nc.id);
+  }
 }
 
 function sJM(m){curJm=m;document.getElementById('jmo').classList.toggle('on',m==='open');document.getElementById('jma').classList.toggle('on',m==='approval');}
