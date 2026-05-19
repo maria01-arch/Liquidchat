@@ -476,11 +476,30 @@ function rMsg(msgs){
 async function sMsg(){
   const ta=document.getElementById('mta');const ct=ta.value.trim();if(!ct||!cc)return;
   ta.value='';ta.style.height='auto';
-  const{error}=await sb.from('lc_messages').insert({conversation_id:cc.id,sender_id:me.id,content:ct,message_type:'text'});
-  if(error){console.error('Send error:',error);ta.value=ct;return;}
-  await sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',cc.id);
-  await lM(cc.id);
+  const{data:msg,error}=await sb.from('lc_messages').insert({
+    conversation_id:cc.id,sender_id:me.id,content:ct,message_type:'text'
+  }).select().single();
+  if(error){console.error('Send error:',error.message);ta.value=ct;return;}
+  sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',cc.id);
+  // Append message directly without full reload
+  appendMsg({...msg, profiles:myProf});
   loadC();
+}
+
+function appendMsg(msg){
+  const area=document.getElementById('msgs');
+  const mine=msg.sender_id===me.id;
+  const p=msg.profiles;
+  const time=ft(msg.created_at||new Date().toISOString());
+  const bc=esc(msg.content||'');
+  let html='';
+  if(!mine){
+    html='<div class="mrow">'+avH(p,24,'mav2')+'<div class="mwrap"><div class="bbl th">'+bc+'</div><div class="mtime">'+time+'</div></div></div>';
+  }else{
+    html='<div class="mrow me"><div class="mwrap"><div class="bbl me">'+bc+'</div><div class="mtime">'+time+'</div></div></div>';
+  }
+  area.innerHTML+=html;
+  area.scrollTop=area.scrollHeight;
 }
 
 async function sImg(inp){
