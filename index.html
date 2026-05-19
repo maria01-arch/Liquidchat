@@ -303,7 +303,7 @@ let me=null,mp=null,cc=null,cvs=[],sdmu=null,sgus=[],cjm='open',gsr=[],dmr=[],rt
 function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function avH(p,sz,cls=''){
   const col=p?.avatar_color||'#6c63ff';
-  const ini=(p?.full_name||p?.username||'??').slice(0,2).toUpperCase();
+  const ini=((p?.full_name||p?.username||p?.email||'??')).slice(0,2).toUpperCase();
   const url=p?.avatar_url;
   const s=sz+'px';const fs=Math.floor(sz*.35)+'px';
   const bs='width:'+s+';height:'+s+';flex-shrink:0;';
@@ -394,7 +394,7 @@ function rC(list){
   if(!list.length){el.innerHTML='<div style="padding:18px 13px;color:var(--tx3);font-size:12px;text-align:center;">No chats found.</div>';return;}
   el.innerHTML=list.map(c=>{
     const ig=c.type==='group';
-    const nm=ig?c.name:(c._o?.full_name||c._o?.username||'Unknown');
+    const nm=ig?c.name:(c._o?.full_name||c._o?.username||c._o?.email||'Unknown');
     const col=ig?(c.avatar_color||'#6c63ff'):(c._o?.avatar_color||'#6c63ff');
     const ini=ig?'👥':((c._o?.full_name||c._o?.username||'??').slice(0,2).toUpperCase());
     const vip=!ig&&c._o?.is_vip;
@@ -409,7 +409,14 @@ function rC(list){
 function fC(q){const f=cvs.filter(c=>{const n=c.type==='group'?c.name:(c._o?.full_name||c._o?.username||'');return n.toLowerCase().includes(q.toLowerCase());});rC(f);}
 
 async function oC(id){
-  cc=cvs.find(c=>c.id===id);if(!cc)return;
+  cc=cvs.find(c=>c.id===id);
+  if(!cc){
+    const{data:fc}=await sb.from('lc_conversations').select('*').eq('id',id).single().catch(()=>({data:null}));
+    if(!fc){console.error('Conv not found:',id);return;}
+    fc._l=null;
+    cvs.unshift(fc);
+    cc=fc;
+  }
   // Make sure _o is loaded for direct chats
   if(cc.type==='direct'&&!cc._o){
     const{data:om}=await sb.from('lc_members').select('user_id').eq('conversation_id',id).neq('user_id',me.id).limit(1);
@@ -419,7 +426,7 @@ async function oC(id){
   const cv=document.getElementById('cv');cv.style.display='flex';
   if(window.innerWidth<=660)document.getElementById('cmain').classList.add('mob');
   const ig=cc.type==='group';
-  const nm=ig?cc.name:(cc._o?.full_name||cc._o?.username||'Unknown');
+  const nm=ig?cc.name:(cc._o?.full_name||cc._o?.username||cc._o?.email||'Unknown');
   const col=ig?(cc.avatar_color||'#6c63ff'):(cc._o?.avatar_color||'#6c63ff');
   const tav=document.getElementById('tav');
   tav.className='tav'+(ig?' g':'');
@@ -515,7 +522,6 @@ function selDU(u){sdmu=u;sDU();}
 
 async function stDM(){
   if(!sdmu){alert('No user selected!');return;}
-  alert('Opening chat with: '+sdmu.full_name+' ID:'+sdmu.id);
   cDM();
   // Check if DM already exists
   const{data:mm}=await sb.from('lc_members').select('conversation_id').eq('user_id',me.id);
