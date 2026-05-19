@@ -409,15 +409,7 @@ function rC(list){
 function fC(q){const f=cvs.filter(c=>{const n=c.type==='group'?c.name:(c._o?.full_name||c._o?.username||'');return n.toLowerCase().includes(q.toLowerCase());});rC(f);}
 
 async function oC(id){
-  cc=cvs.find(c=>c.id===id);
-  if(!cc){
-    // Try fetching conversation directly if not in cvs yet
-    const{data:fc}=await sb.from('lc_conversations').select('*').eq('id',id).single().catch(()=>({data:null}));
-    if(fc){
-      cvs.push(fc);
-      cc=fc;
-    } else return;
-  }
+  cc=cvs.find(c=>c.id===id);if(!cc)return;
   // Make sure _o is loaded for direct chats
   if(cc.type==='direct'&&!cc._o){
     const{data:om}=await sb.from('lc_members').select('user_id').eq('conversation_id',id).neq('user_id',me.id).limit(1);
@@ -538,15 +530,7 @@ async function stDM(){
   await sb.from('lc_members').insert([{conversation_id:nc.id,user_id:me.id,role:'admin'},{conversation_id:nc.id,user_id:sdmu.id,role:'member'}]);
   cDM();
   await loadC();
-  // Find the new conversation in the list and open it
-  const newConv = cvs.find(c=>c.id===nc.id);
-  if(newConv){ await oC(nc.id); }
-  else {
-    // Manually add to cvs and open
-    nc._o = sdmu; nc._l = null; nc.type='direct';
-    cvs.unshift(nc);
-    await oC(nc.id);
-  }
+  await oC(nc.id);
 }
 
 function sJM(m){curJm=m;document.getElementById('jmo').classList.toggle('on',m==='open');document.getElementById('jma').classList.toggle('on',m==='approval');}
