@@ -523,35 +523,57 @@ function selDU(u){sdmu=u;sDU();}
 async function stDM(){
   if(!sdmu){alert('No user selected!');return;}
   cDM();
-  // Check if DM already exists
-  const{data:mm}=await sb.from('lc_members').select('conversation_id').eq('user_id',me.id);
-  if(mm?.length){
-    const mids=mm.map(m=>m.conversation_id);
-    const{data:dc}=await sb.from('lc_conversations').select('id').eq('type','direct').in('id',mids);
-    if(dc?.length){
-      const dids=dc.map(c=>c.id);
-      const{data:sh}=await sb.from('lc_members').select('conversation_id').eq('user_id',sdmu.id).in('conversation_id',dids).limit(1);
-      if(sh?.length){
-        await loadC();
-        await oC(sh[0].conversation_id);
-        return;
+  try {
+    // Check if DM already exists
+    const{data:mm}=await sb.from('lc_members').select('conversation_id').eq('user_id',me.id);
+    let convId = null;
+    if(mm?.length){
+      const mids=mm.map(m=>m.conversation_id);
+      const{data:dc}=await sb.from('lc_conversations').select('id').eq('type','direct').in('id',mids);
+      if(dc?.length){
+        const dids=dc.map(c=>c.id);
+        const{data:sh}=await sb.from('lc_members').select('conversation_id').eq('user_id',sdmu.id).in('conversation_id',dids).limit(1);
+        if(sh?.length) convId=sh[0].conversation_id;
       }
     }
+    if(!convId){
+      const{data:nc,error}=await sb.from('lc_conversations').insert({type:'direct',created_by:me.id}).select().single();
+      if(error){alert('Error creating chat: '+error.message);return;}
+      await sb.from('lc_members').insert([
+        {conversation_id:nc.id,user_id:me.id,role:'admin'},
+        {conversation_id:nc.id,user_id:sdmu.id,role:'member'}
+      ]);
+      convId=nc.id;
+    }
+    // Build conv and open directly without relying on cvs
+    const conv={id:convId,type:'direct',created_by:me.id,_o:sdmu,_l:null,avatar_color:'#6c63ff'};
+    // Remove old version if exists
+    cvs=cvs.filter(c=>c.id!==convId);
+    cvs.unshift(conv);
+    cc=conv;
+    // Show chat view directly
+    openChatView(conv);
+  } catch(e){
+    alert('Error: '+e.message);
   }
-  // Create new DM
-  const{data:nc,error}=await sb.from('lc_conversations').insert({type:'direct',created_by:me.id}).select().single();
-  if(error){alert('Error: '+error.message);return;}
-  await sb.from('lc_members').insert([
-    {conversation_id:nc.id,user_id:me.id,role:'admin'},
-    {conversation_id:nc.id,user_id:sdmu.id,role:'member'}
-  ]);
-  // Manually build the conv object and open directly
-  nc.type='direct';
-  nc._o=sdmu;
-  nc._l=null;
-  cvs.unshift(nc);
+}
+
+function openChatView(conv){
+  document.getElementById('emp').style.display='none';
+  const cv=document.getElementById('cv');cv.style.display='flex';
+  if(window.innerWidth<=660)document.getElementById('cmain').classList.add('mob');
+  const nm=conv._o?.full_name||conv._o?.username||conv._o?.email||'Unknown';
+  const col=conv._o?.avatar_color||'#6c63ff';
+  const tav=document.getElementById('tav');
+  tav.className='tav';
+  if(conv._o?.avatar_url){tav.innerHTML='<img src="'+esc(conv._o.avatar_url)+'">';tav.style.background='transparent';}
+  else{tav.style.background=col;tav.textContent=(nm).slice(0,2).toUpperCase();}
+  document.getElementById('tn').textContent=nm;
+  document.getElementById('ts').textContent='ID: '+(conv._o?.liquid_id||'');
+  document.getElementById('gsb').style.display='none';
+  document.getElementById('pvb').style.display='flex';
   rC(cvs);
-  await oC(nc.id);
+  lM(conv.id);
 }
 
 function sJM(m){curJm=m;document.getElementById('jmo').classList.toggle('on',m==='open');document.getElementById('jma').classList.toggle('on',m==='approval');}
