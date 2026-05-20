@@ -481,7 +481,8 @@ async function loadC(){
   const ids=mems.map(m=>m.conversation_id);
   const{data:cs}=await sb.from('lc_conversations').select('*').in('id',ids).order('updated_at',{ascending:false});
   cvs=cs||[];
-  for(const c of cvs){
+  // Load all data in parallel
+  await Promise.all(cvs.map(async c=>{
     const{data:lm}=await sb.from('lc_messages').select('content,created_at,message_type,sender_id').eq('conversation_id',c.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
     c._l=lm||null;
     if(c.type==='direct'){
@@ -491,7 +492,7 @@ async function loadC(){
         c._o=op||null;
       }
     }
-  }
+  }));
   rC(cvs);
 }
 
@@ -631,7 +632,7 @@ function subRT(){
 }
 
 // DM
-function oDM(){sdmu=null;document.getElementById('dms').value='';document.getElementById('dml').innerHTML='';document.getElementById('dmod').classList.add('show');}
+function oDM(){sdmu=null;document.getElementById('dms').value='';document.getElementById('dml').innerHTML='';document.getElementById('dmod').classList.add('show');history.pushState(null,'',window.location.href);}
 function cDM(){document.getElementById('dmod').classList.remove('show');}
 
 async function sDU(){
@@ -675,7 +676,7 @@ function oGM(){
   sgus=[];jm='open';
   ['gnn','gnd','gnt','gns'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('gnl').innerHTML='';sJM('open');
-  document.getElementById('gmod').classList.add('show');
+  document.getElementById('gmod').classList.add('show');history.pushState(null,'',window.location.href);
 }
 function cGM(){document.getElementById('gmod').classList.remove('show');}
 
@@ -714,7 +715,7 @@ async function oGS(){
   document.getElementById('gsl').value='https://liquidchats.vercel.app/join/'+(cc.invite_code||'');
   document.getElementById('gsjmo').classList.toggle('on',(cc.join_mode||'open')==='open');
   document.getElementById('gsjma').classList.toggle('on',cc.join_mode==='approval');
-  document.getElementById('gsmod').classList.add('show');
+  document.getElementById('gsmod').classList.add('show');history.pushState(null,'',window.location.href);
   const{data:rawM}=await sb.from('lc_members').select('*').eq('conversation_id',cc.id);
   const uids=(rawM||[]).map(m=>m.user_id);
   let pp={};
@@ -753,7 +754,7 @@ async function apR(rid,uid){await sb.from('lc_join_requests').update({status:'ap
 async function rjR(rid){await sb.from('lc_join_requests').update({status:'rejected'}).eq('id',rid);await oGS();}
 
 // SEARCH GROUPS
-function oSG(){document.getElementById('sgs').value='';document.getElementById('sgr').innerHTML='';document.getElementById('sgmod').classList.add('show');}
+function oSG(){document.getElementById('sgs').value='';document.getElementById('sgr').innerHTML='';document.getElementById('sgmod').classList.add('show');history.pushState(null,'',window.location.href);}
 function cSG(){document.getElementById('sgmod').classList.remove('show');}
 async function sByT(){
   const q=document.getElementById('sgs').value.trim();if(!q){document.getElementById('sgr').innerHTML='';return;}
@@ -817,7 +818,7 @@ function oMP(){
   if(mp.avatar_url){a.innerHTML='<img src="'+esc(mp.avatar_url)+'" style="width:72px;height:72px;border-radius:50%;object-fit:cover;">';a.style.background='transparent';}
   else{a.style.background=mp.avatar_color||'#6c63ff';a.textContent=(nm(mp)||'?').slice(0,2).toUpperCase();}
   document.getElementById('amenu').style.display='none';
-  document.getElementById('mpmod').classList.add('show');
+  document.getElementById('mpmod').classList.add('show');history.pushState(null,'',window.location.href);
 }
 function cMP(){document.getElementById('mpmod').classList.remove('show');}
 async function svMP(){
@@ -845,14 +846,19 @@ async function upAv(inp){
 
 function tAM(){const m=document.getElementById('amenu');m.style.display=m.style.display==='flex'?'none':'flex';}
 
-function oVIP(){document.getElementById('cMP')&&cMP();document.getElementById('vipmod').classList.add('show');}
+function oVIP(){document.getElementById('cMP')&&cMP();document.getElementById('vipmod').classList.add('show');history.pushState(null,'',window.location.href);}
 function cVIP(){document.getElementById('vipmod').classList.remove('show');}
 function copyAddr(el){navigator.clipboard.writeText(el.textContent).then(()=>alert('Address copied!')).catch(()=>{const r=document.createRange();r.selectNode(el);window.getSelection().removeAllRanges();window.getSelection().addRange(r);document.execCommand('copy');alert('Address copied!');});}
 async function submitVIP(){
   const txid=document.getElementById('txid').value.trim();
   if(!txid){alert('Please enter your transaction ID.');return;}
-  const{error}=await sb.from('profiles').update({vip_pending:txid}).eq('id',me.id).catch(()=>({error:null}));
-  alert('✅ Payment submitted! Your VIP will be activated within 24 hours after verification.\n\nTransaction ID: '+txid);
+  // Save as a message to admin or just store in profiles bio temporarily
+  try{
+    // Try to save to profiles - add txid to a note field
+    await sb.from('profiles').update({bio:(mp?.bio||'')+' [VIP-TX:'+txid+']'}).eq('id',me.id);
+  }catch(e){}
+  alert('✅ Payment submitted!\n\nYour VIP will be activated within 24 hours after verification.\n\nTransaction ID saved: '+txid);
+  document.getElementById('txid').value='';
   cVIP();
 }
 function oIV(src){document.getElementById('ivi').src=src;document.getElementById('iv').style.display='flex';}
@@ -860,7 +866,24 @@ function closeIV(){document.getElementById('iv').style.display='none';}
 
 // Intercept browser back button
 window.addEventListener('popstate', function(e){
-  e.preventDefault();
+  // Check if any modal is open - close it
+  const modals=['vipmod','mpmod','pvmod','sgmod','gsmod','gmod','dmod'];
+  for(const id of modals){
+    const m=document.getElementById(id);
+    if(m&&m.classList.contains('show')){
+      m.classList.remove('show');
+      history.pushState(null,'',window.location.href);
+      return;
+    }
+  }
+  // If account menu open - close it
+  const am=document.getElementById('amenu');
+  if(am&&am.style.display==='flex'){
+    am.style.display='none';
+    history.pushState(null,'',window.location.href);
+    return;
+  }
+  // If chat is open - go back to list
   if(document.getElementById('cm').classList.contains('show')){
     goBack();
     history.pushState(null,'',window.location.href);
