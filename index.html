@@ -446,9 +446,16 @@ async function chkA(cid){const{data}=await sb.from('lc_members').select('role').
 
 async function lM(cid){
   const area=document.getElementById('msgs');
-  const hasContent = area.innerHTML.trim() !== '' && !area.innerHTML.includes('ld');
-  if(!hasContent) area.innerHTML='<div class="ld"><span></span><span></span><span></span></div>';
-  const{data:msgs}=await sb.from('lc_messages').select('*,profiles:sender_id(id,full_name,username,avatar_url,avatar_color,is_vip,liquid_id)').eq('conversation_id',cid).order('created_at',{ascending:true});
+  area.innerHTML='<div class="ld"><span></span><span></span><span></span></div>';
+  const{data:msgs,error}=await sb.from('lc_messages')
+    .select('*,profiles:sender_id(id,full_name,username,avatar_url,avatar_color,is_vip,liquid_id)')
+    .eq('conversation_id',cid)
+    .order('created_at',{ascending:true});
+  if(error){
+    area.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:13px;padding:28px;">Error loading messages.</div>';
+    console.error('lM error:',error);
+    return;
+  }
   rMsg(msgs||[]);
 }
 
@@ -603,7 +610,7 @@ function openChatView(conv){
   document.getElementById('gsb').style.display='none';
   document.getElementById('pvb').style.display='flex';
   rC(cvs);
-  lM(conv.id);
+  lM(cc.id);
 }
 
 function sJM(m){curJm=m;document.getElementById('jmo').classList.toggle('on',m==='open');document.getElementById('jma').classList.toggle('on',m==='approval');}
