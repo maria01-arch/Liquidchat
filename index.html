@@ -344,7 +344,49 @@ textarea.ti2::placeholder{color:var(--t3);}
     <div class="lbl">Looking For</div>
     <select id="mplk"><option value="">Select...</option><option>Friendship</option><option>Dating</option><option>Networking</option><option>Just Chatting</option><option>Long-term Relationship</option></select>
     <div class="lbl">Country</div><input type="text" id="mpc">
+    <div style="margin-top:6px;"><button onclick="oVIP()" style="width:100%;padding:12px;border-radius:9px;border:none;background:linear-gradient(135deg,#ffc107,#ff8c00);color:#000;font-size:13px;font-weight:700;cursor:pointer;" id="vipbtn">⭐ Upgrade to VIP</button></div>
     <div class="macts"><button class="mb s" onclick="cMP()">Cancel</button><button class="mb p" onclick="svMP()">Save</button></div>
+  </div>
+</div>
+
+<!-- VIP MODAL -->
+<div class="ov" id="vipmod">
+  <div class="mod">
+    <h3>⭐ Upgrade to VIP</h3>
+    <div style="background:linear-gradient(135deg,#ffc107,#ff8c00);border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;">
+      <div style="font-size:32px;margin-bottom:6px;">★</div>
+      <div style="font-weight:800;font-size:16px;color:#000;">LiquidChat VIP</div>
+      <div style="font-size:12px;color:#333;margin-top:4px;">Unlock all premium features</div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px;">✅ Create group chats</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px;">✅ Change your display name</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px;">✅ Gold ★ VIP badge on profile</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;font-size:13px;">✅ Priority support</div>
+    </div>
+    <div style="background:var(--s2);border-radius:12px;padding:14px;margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:10px;letter-spacing:.05em;text-transform:uppercase;">Send Payment To</div>
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;color:var(--t3);margin-bottom:3px;">Bitcoin (BTC)</div>
+        <div style="font-size:11px;color:var(--tx);background:var(--s3);padding:8px;border-radius:7px;word-break:break-all;cursor:pointer;" onclick="copyAddr(this)">bc1ql7qzefrh2czl29krzzsnwkr6dvnp2few2h80s7</div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;color:var(--t3);margin-bottom:3px;">USDT TRC-20</div>
+        <div style="font-size:11px;color:var(--tx);background:var(--s3);padding:8px;border-radius:7px;word-break:break-all;cursor:pointer;" onclick="copyAddr(this)">TABFK9Z3yC4kKtVzqEwqoyAfwSySkzJcHL</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:3px;">Ethereum (ETH)</div>
+        <div style="font-size:11px;color:var(--tx);background:var(--s3);padding:8px;border-radius:7px;word-break:break-all;cursor:pointer;" onclick="copyAddr(this)">0x793511cc61F026A53b7a8F1F0352227f804dB69C</div>
+      </div>
+    </div>
+    <div style="background:rgba(108,99,255,.1);border:1px solid var(--ac);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--t2);line-height:1.6;">
+      After sending payment, tap the button below and enter your transaction ID. We will verify and activate your VIP within 24 hours.
+    </div>
+    <input type="text" id="txid" placeholder="Enter transaction ID...">
+    <div class="macts">
+      <button class="mb s" onclick="cVIP()">Cancel</button>
+      <button class="mb p" onclick="submitVIP()">Submit Payment</button>
+    </div>
   </div>
 </div>
 
@@ -356,7 +398,7 @@ const sb=createClient(SU,SK);
 let me=null,mp=null,cc=null,cvs=[],sdmu=null,sgus=[],jm='open',gsr=[],dmr=[],rt=null,vu=null,lr={};
 
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function nm(p){return p?.full_name||p?.username||'User '+(p?.liquid_id||'');}
+function nm(p){if(!p)return'Unknown';return p.full_name||p.username||(p.liquid_id?'User '+p.liquid_id:'Unknown');}
 function avH(p,sz,cls){
   const col=p?.avatar_color||'#6c63ff';
   const ini=(nm(p)||'?').slice(0,2).toUpperCase();
@@ -490,6 +532,7 @@ async function oC(id){
   document.getElementById('emp').style.display='none';
   document.getElementById('cv').style.display='flex';
   document.getElementById('cm').classList.add('show');
+  history.pushState(null,'',window.location.href);
   // Topbar
   const ig=cc.type==='group';
   const name=ig?cc.name:nm(cc._o);
@@ -760,6 +803,8 @@ async function mFP(){if(!vu)return;sdmu=vu;cPV();await stDM();}
 function oMP(){
   if(!mp)return;
   const can=mp.is_vip||!mp.full_name;
+  const vipBtn=document.getElementById('vipbtn');
+  if(vipBtn)vipBtn.style.display=mp.is_vip?'none':'block';
   document.getElementById('mpn').value=mp.full_name||'';
   document.getElementById('mpn').disabled=!can;
   document.getElementById('vnl').textContent=!can?'(VIP only)':'';
@@ -799,8 +844,28 @@ async function upAv(inp){
 }
 
 function tAM(){const m=document.getElementById('amenu');m.style.display=m.style.display==='flex'?'none':'flex';}
+
+function oVIP(){document.getElementById('cMP')&&cMP();document.getElementById('vipmod').classList.add('show');}
+function cVIP(){document.getElementById('vipmod').classList.remove('show');}
+function copyAddr(el){navigator.clipboard.writeText(el.textContent).then(()=>alert('Address copied!')).catch(()=>{const r=document.createRange();r.selectNode(el);window.getSelection().removeAllRanges();window.getSelection().addRange(r);document.execCommand('copy');alert('Address copied!');});}
+async function submitVIP(){
+  const txid=document.getElementById('txid').value.trim();
+  if(!txid){alert('Please enter your transaction ID.');return;}
+  const{error}=await sb.from('profiles').update({vip_pending:txid}).eq('id',me.id).catch(()=>({error:null}));
+  alert('✅ Payment submitted! Your VIP will be activated within 24 hours after verification.\n\nTransaction ID: '+txid);
+  cVIP();
+}
 function oIV(src){document.getElementById('ivi').src=src;document.getElementById('iv').style.display='flex';}
 function closeIV(){document.getElementById('iv').style.display='none';}
+
+// Intercept browser back button
+window.addEventListener('popstate', function(e){
+  e.preventDefault();
+  if(document.getElementById('cm').classList.contains('show')){
+    goBack();
+    history.pushState(null,'',window.location.href);
+  }
+});
 
 // SESSION CHECK
 (async()=>{
