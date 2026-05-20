@@ -465,10 +465,16 @@ async function lM(cid){
   const area=document.getElementById('msgs');
   if(!cid){area.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:13px;padding:28px;">No conversation selected.</div>';return;}
   area.innerHTML='<div class="ld"><span></span><span></span><span></span></div>';
-  const{data:msgs,error}=await sb.from('lc_messages').select('*').eq('conversation_id',cid).order('created_at',{ascending:true});
+  // Try up to 3 times with small delay (handles race condition)
+  let msgs=null,error=null;
+  for(let attempt=0;attempt<3;attempt++){
+    const res=await sb.from('lc_messages').select('*').eq('conversation_id',cid).order('created_at',{ascending:true});
+    msgs=res.data;error=res.error;
+    if(!error&&msgs&&msgs.length>0)break;
+    if(attempt<2)await new Promise(r=>setTimeout(r,300));
+  }
   if(error){area.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:13px;padding:28px;">'+error.message+'</div>';return;}
   if(!msgs||!msgs.length){area.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:13px;padding:28px;">No messages yet. Say hello! 👋</div>';return;}
-  // Fetch profiles
   const ids=[...new Set(msgs.map(m=>m.sender_id).filter(Boolean))];
   let pm={};
   if(ids.length){const{data:ps}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,is_vip,liquid_id').in('id',ids);(ps||[]).forEach(p=>pm[p.id]=p);}
