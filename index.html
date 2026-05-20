@@ -60,6 +60,7 @@ select.fi{cursor:pointer;}
 .cname{font-weight:600;font-size:13px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cprev{font-size:11px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
 .ct{font-size:10px;color:var(--tx3);flex-shrink:0;}
+.unread-dot{width:9px;height:9px;border-radius:50%;background:var(--ac);flex-shrink:0;box-shadow:0 0 6px var(--ac);}
 .sfoot{padding:10px 13px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:9px;}
 .meav{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:white;cursor:pointer;flex-shrink:0;overflow:hidden;}
 .meav img{width:100%;height:100%;object-fit:cover;}
@@ -298,7 +299,7 @@ const SU='https://mrmkrttvmsechffswxct.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ybWtydHR2bXNlY2hmZnN3eGN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTk0ODEsImV4cCI6MjA5NDY3NTQ4MX0.aHsYc5-dnmT8OKG0Lqvg_4O9IOuCHhZ25CRxwHD0ZH0';
 const{createClient}=supabase;
 const sb=createClient(SU,SK);
-let me=null,mp=null,cc=null,cvs=[],sdmu=null,sgus=[],cjm='open',gsr=[],dmr=[],rtc=null,vu=null;
+let me=null,mp=null,cc=null,cvs=[],sdmu=null,sgus=[],cjm='open',gsr=[],dmr=[],rtc=null,vu=null,lastRead={};
 
 function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function avH(p,sz,cls=''){
@@ -374,12 +375,30 @@ async function loadC(){
     const ids=ms.map(m=>m.conversation_id);
     const{data:cs}=await sb.from('lc_conversations').select('*').in('id',ids).order('updated_at',{ascending:false});
     cvs=cs||[];
+    // Get last messages for all convs at once
     for(let c of cvs){
-      const{data:lm}=await sb.from('lc_messages').select('content,created_at,message_type').eq('conversation_id',c.id).order('created_at',{ascending:false}).limit(1).single().catch(()=>({data:null}));
-      c._l=lm;
-      if(c.type==='direct'){
-        const{data:om}=await sb.from('lc_members').select('user_id').eq('conversation_id',c.id).neq('user_id',me.id).limit(1);
-        if(om&&om[0]){const{data:op}=await sb.from('profiles').select('*').eq('id',om[0].user_id).single().catch(()=>({data:null}));c._o=op;}
+      const{data:lm}=await sb.from('lc_messages')
+        .select('content,created_at,message_type,sender_id')
+        .eq('conversation_id',c.id)
+        .order('created_at',{ascending:false})
+        .limit(1)
+        .maybeSingle();
+      c._l=lm||null;
+    }
+    // Get other user profiles for direct chats
+    const directConvs=cvs.filter(c=>c.type==='direct');
+    for(let c of directConvs){
+      const{data:om}=await sb.from('lc_members')
+        .select('user_id')
+        .eq('conversation_id',c.id)
+        .neq('user_id',me.id)
+        .limit(1);
+      if(om&&om[0]){
+        const{data:op}=await sb.from('profiles')
+          .select('id,full_name,username,avatar_url,avatar_color,is_vip,liquid_id')
+          .eq('id',om[0].user_id)
+          .maybeSingle();
+        c._o=op||null;
       }
     }
     rC(cvs);
@@ -402,13 +421,15 @@ function rC(list){
     const tm=c._l?ft(c._l.created_at):'';
     const act=cc?.id===c.id?'on':'';
     let avEl=ig?'<div class="cav g" style="background:'+col+'">👥</div>':(c._o?.avatar_url?'<div class="cav"><img src="'+esc(c._o.avatar_url)+'"></div>':'<div class="cav" style="background:'+col+'">'+ini+'</div>');
-    return'<div class="ci '+act+'" onclick="oC(\''+c.id+'\')">'+avEl+'<div class="cinfo"><div class="cnrow"><div class="cname">'+esc(nm)+'</div>'+(vip?'<span style="font-size:11px;">★</span>':'')+'</div><div class="cprev">'+esc((lt||'').substring(0,42))+'</div></div><div class="ct">'+tm+'</div></div>';
+    const isUnread=c._l&&c._l.sender_id!==me.id&&(!lastRead[c.id]||new Date(c._l.created_at)>new Date(lastRead[c.id]));
+    return'<div class="ci '+act+'" onclick="oC(\''+c.id+'\')">'+avEl+'<div class="cinfo"><div class="cnrow"><div class="cname">'+esc(nm)+'</div>'+(vip?'<span style="font-size:11px;">★</span>':'')+'</div><div class="cprev">'+esc((lt||'').substring(0,42))+'</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;"><div class="ct">'+tm+'</div>'+(isUnread?'<div class="unread-dot"></div>':'')+'</div></div>';
   }).join('');
 }
 
 function fC(q){const f=cvs.filter(c=>{const n=c.type==='group'?c.name:(c._o?.full_name||c._o?.username||'');return n.toLowerCase().includes(q.toLowerCase());});rC(f);}
 
 async function oC(id){
+  lastRead[id]=new Date().toISOString();
   cc=cvs.find(c=>c.id===id);
   if(!cc){
     const{data:fc}=await sb.from('lc_conversations').select('*').eq('id',id).single().catch(()=>({data:null}));
@@ -603,6 +624,7 @@ async function stDM(){
 }
 
 function openChatView(conv){
+  lastRead[conv.id]=new Date().toISOString();
   document.getElementById('emp').style.display='none';
   const cv=document.getElementById('cv');cv.style.display='flex';
   if(window.innerWidth<=660)document.getElementById('cmain').classList.add('mob');
