@@ -434,29 +434,25 @@ async function oC(id){
   if(!cc){
     const{data:fc}=await sb.from('lc_conversations').select('*').eq('id',id).maybeSingle();
     if(!fc)return;
-    fc._l=null;
-    cvs.unshift(fc);
-    cc=fc;
+    fc._l=null;cc=fc;cvs.unshift(fc);
   }
-  // Always reload _o for direct chats to make sure it's fresh
-  if(cc.type==='direct'){
+  if(cc.type==='direct'&&!cc._o){
     const{data:om}=await sb.from('lc_members').select('user_id').eq('conversation_id',id).neq('user_id',me.id).limit(1);
-    if(om&&om[0]){
-      const{data:op}=await sb.from('profiles').select('*').eq('id',om[0].user_id).maybeSingle();
-      cc._o=op||cc._o||null;
-    }
+    if(om&&om[0]){const{data:op}=await sb.from('profiles').select('*').eq('id',om[0].user_id).maybeSingle();cc._o=op;}
   }
+  // Show chat view
   document.getElementById('emp').style.display='none';
-  const cv=document.getElementById('cv');cv.style.display='flex';
-  document.getElementById('cmain').classList.add('mob');
+  document.getElementById('cv').style.display='flex';
   document.getElementById('cmain').style.display='flex';
+  document.getElementById('cmain').classList.add('mob');
+  // Set topbar
   const ig=cc.type==='group';
   const nm=ig?cc.name:(cc._o?.full_name||cc._o?.username||cc._o?.email||'Unknown');
   const col=ig?(cc.avatar_color||'#6c63ff'):(cc._o?.avatar_color||'#6c63ff');
   const tav=document.getElementById('tav');
   tav.className='tav'+(ig?' g':'');
   if(!ig&&cc._o?.avatar_url){tav.innerHTML='<img src="'+esc(cc._o.avatar_url)+'">';tav.style.background='transparent';}
-  else{tav.style.background=ig?'var(--sf3)':col;tav.innerHTML=ig?'👥':((cc._o?.full_name||'??').slice(0,2).toUpperCase());}
+  else{tav.style.background=ig?'var(--sf3)':col;tav.innerHTML=ig?'👥':nm.slice(0,2).toUpperCase();}
   const vip=!ig&&cc._o?.is_vip;
   document.getElementById('tn').innerHTML=esc(nm)+(vip?' <span class="vstar">★ VIP</span>':'');
   if(ig){const{count}=await sb.from('lc_members').select('*',{count:'exact',head:true}).eq('conversation_id',id);document.getElementById('ts').textContent=count+' members';}
@@ -464,188 +460,68 @@ async function oC(id){
   const iam=await chkA(id);
   document.getElementById('gsb').style.display=ig&&iam?'flex':'none';
   document.getElementById('pvb').style.display=!ig?'flex':'none';
-  rC(cvs);await lM(id);
+  rC(cvs);
+  await lM(id);
 }
-
-async function chkA(cid){const{data}=await sb.from('lc_members').select('role').eq('conversation_id',cid).eq('user_id',me.id).single().catch(()=>({data:null}));return data?.role==='admin';}
 
 async function lM(cid){
   const area=document.getElementById('msgs');
   area.innerHTML='<div class="ld"><span></span><span></span><span></span></div>';
-  const{data:msgs,error}=await sb.from('lc_messages')
-    .select('*')
-    .eq('conversation_id',cid)
-    .order('created_at',{ascending:true});
-  if(error){
-    area.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:13px;padding:28px;">Error: '+error.message+'</div>';
-    return;
-  }
-  // Fetch sender profiles separately
-  const senderIds=[...new Set((msgs||[]).map(m=>m.sender_id).filter(Boolean))];
-  let profileMap={};
-  if(senderIds.length){
-    const{data:profs}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,is_vip,liquid_id').in('id',senderIds);
-    (profs||[]).forEach(p=>profileMap[p.id]=p);
-  }
-  const msgsWithProfiles=(msgs||[]).map(m=>({...m,profiles:profileMap[m.sender_id]||null}));
-  rMsg(msgsWithProfiles);
+  const{data:msgs,error}=await sb.from('lc_messages').select('*').eq('conversation_id',cid).order('created_at',{ascending:true});
+  if(error){area.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:13px;padding:28px;">'+error.message+'</div>';return;}
+  if(!msgs||!msgs.length){area.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:13px;padding:28px;">No messages yet. Say hello! 👋</div>';return;}
+  // Fetch profiles
+  const ids=[...new Set(msgs.map(m=>m.sender_id).filter(Boolean))];
+  let pm={};
+  if(ids.length){const{data:ps}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,is_vip,liquid_id').in('id',ids);(ps||[]).forEach(p=>pm[p.id]=p);}
+  const msgsP=msgs.map(m=>({...m,profiles:pm[m.sender_id]||null}));
+  rMsg(msgsP);
 }
 
 function rMsg(msgs){
   const area=document.getElementById('msgs');
-  if(!msgs.length){area.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:13px;padding:28px;">No messages yet. Say hello! 👋</div>';return;}
   let html='',ld='';
   msgs.forEach(msg=>{
     const mine=msg.sender_id===me.id;
     const dt=new Date(msg.created_at).toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
     if(dt!==ld){html+='<div class="dsep"><span>'+dt+'</span></div>';ld=dt;}
-    const p=msg.profiles;const ig=cc?.type==='group';const tm=ft(msg.created_at);
-    if(msg.message_type==='system'){html+='<div class="mrow"><div class="mwrap" style="width:100%;"><div class="bbl sys">'+esc(msg.content)+'</div></div></div>';return;}
-    const bc=msg.message_type==='image'&&msg.image_url?'<img src="'+esc(msg.image_url)+'" onclick="oIV(\''+esc(msg.image_url)+'\')">'+(msg.content?'<div style="margin-top:5px;">'+esc(msg.content)+'</div>':''):esc(msg.content||'');
+    const p=msg.profiles;
+    const ig=cc?.type==='group';
+    const tm=ft(msg.created_at);
+    if(msg.message_type==='system'){html+='<div class="mrow"><div class="mwrap" style="width:100%"><div class="bbl sys">'+esc(msg.content)+'</div></div></div>';return;}
+    const bc=msg.message_type==='image'&&msg.image_url?'<img src="'+esc(msg.image_url)+'" onclick="oIV(this.src)">'+(msg.content?'<div>'+esc(msg.content)+'</div>':''):esc(msg.content||'');
     if(!mine){
       html+=(ig&&p?'<div class="msender">'+esc(p.full_name||p.username||'')+'</div>':'')+
-        '<div class="mrow">'+avH(p,24,'mav2')+
-        '<div class="mwrap"><div class="bbl th">'+bc+'</div><div class="mtime">'+tm+'</div></div></div>';
+        '<div class="mrow">'+avH(p,24,'mav2')+'<div class="mwrap"><div class="bbl th">'+bc+'</div><div class="mtime">'+tm+'</div></div></div>';
     }else{
       html+='<div class="mrow me"><div class="mwrap"><div class="bbl me">'+bc+'</div><div class="mtime">'+tm+'</div></div></div>';
     }
   });
-  area.innerHTML=html;area.scrollTop=area.scrollHeight;
-}
-
-async function sMsg(){
-  const ta=document.getElementById('mta');const ct=ta.value.trim();if(!ct||!cc)return;
-  ta.value='';ta.style.height='auto';
-  const convId=cc.id;
-  // Show message immediately
-  const tempMsg={id:'temp_'+Date.now(),conversation_id:convId,sender_id:me.id,content:ct,message_type:'text',created_at:new Date().toISOString(),profiles:myProf};
-  appendMsg(tempMsg);
-  const{data:msg,error}=await sb.from('lc_messages').insert({
-    conversation_id:convId,sender_id:me.id,content:ct,message_type:'text'
-  }).select().single();
-  if(error){
-    alert('Failed to send: '+error.message);
-    return;
-  }
-  sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',convId);
-}
-
-function appendMsg(msg){
-  const area=document.getElementById('msgs');
-  const mine=msg.sender_id===me.id;
-  const p=msg.profiles;
-  const time=ft(msg.created_at||new Date().toISOString());
-  const bc=esc(msg.content||'');
-  let html='';
-  if(!mine){
-    html='<div class="mrow">'+avH(p,24,'mav2')+'<div class="mwrap"><div class="bbl th">'+bc+'</div><div class="mtime">'+time+'</div></div></div>';
-  }else{
-    html='<div class="mrow me"><div class="mwrap"><div class="bbl me">'+bc+'</div><div class="mtime">'+time+'</div></div></div>';
-  }
-  area.innerHTML+=html;
+  area.innerHTML=html;
   area.scrollTop=area.scrollHeight;
 }
 
-async function sImg(inp){
-  const f=inp.files[0];if(!f||!cc)return;
-  const ext=f.name.split('.').pop();const pt=me.id+'/'+Date.now()+'.'+ext;
-  const{data:ud,error}=await sb.storage.from('chat-images').upload(pt,f,{upsert:true});
-  if(error){alert('Upload failed: '+error.message);return;}
-  const{data:ul}=sb.storage.from('chat-images').getPublicUrl(pt);
-  const cap=document.getElementById('mta').value.trim();
-  await sb.from('lc_messages').insert({conversation_id:cc.id,sender_id:me.id,content:cap||'',message_type:'image',image_url:ul.publicUrl});
-  await sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',cc.id);
-  document.getElementById('mta').value='';inp.value='';
-  await lM(cc.id);await loadC();
+async function sMsg(){
+  const ta=document.getElementById('mta');
+  const ct=ta.value.trim();
+  if(!ct||!cc)return;
+  ta.value='';ta.style.height='auto';
+  const{data:msg,error}=await sb.from('lc_messages').insert({conversation_id:cc.id,sender_id:me.id,content:ct,message_type:'text'}).select().single();
+  if(error){alert('Failed: '+error.message);ta.value=ct;return;}
+  sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',cc.id);
+  await lM(cc.id);
+  loadC();
 }
-
-function hK(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sMsg();}}
-function aR(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
 
 function subRT(){
   if(rtc)sb.removeChannel(rtc);
-  rtc=sb.channel('lc-rt').on('postgres_changes',{event:'INSERT',schema:'public',table:'lc_messages'},async(pl)=>{
-    if(cc&&pl.new.conversation_id===cc.id){
-      // Only append if message is from someone else (ours already appended)
-      if(pl.new.sender_id!==me.id){
-        const{data:msg}=await sb.from('lc_messages').select('*,profiles:sender_id(id,full_name,username,avatar_url,avatar_color,liquid_id)').eq('id',pl.new.id).single().catch(()=>({data:null}));
-        if(msg) appendMsg(msg);
-      }
-    }
-    loadC();
-  }).subscribe();
+  rtc=sb.channel('lc-rt')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'lc_messages'},async(pl)=>{
+      if(cc&&pl.new.conversation_id===cc.id)await lM(cc.id);
+      loadC();
+    }).subscribe();
 }
 
-function oDM(){sdmu=null;document.getElementById('dms').value='';document.getElementById('dml').innerHTML='';document.getElementById('dmod').style.display='flex';}
-function cDM(){document.getElementById('dmod').style.display='none';}
-
-async function sDU(){
-  const q=document.getElementById('dms').value.trim();if(!q){document.getElementById('dml').innerHTML='';return;}
-  const{data:us}=await sb.from('profiles').select('*').neq('id',me.id).or('full_name.ilike.%'+q+'%,username.ilike.%'+q+'%,liquid_id.ilike.%'+q+'%').limit(10);
-  dmr=us||[];const list=document.getElementById('dml');
-  if(!dmr.length){list.innerHTML='<div style="color:var(--tx3);font-size:12px;padding:7px;">No users found.</div>';return;}
-  list.innerHTML=dmr.map((u,i)=>'<div class="ui '+(sdmu?.id===u.id?'sel':'')+'" data-i="'+i+'" onclick="selDU(dmr[this.dataset.i])">'+avH(u,32,'uiav')+'<div><div class="uinm">'+esc(u.full_name||u.username)+(u.is_vip?' ★':'')+'</div><div class="uisb">'+esc(u.liquid_id||'')+'</div></div><span class="uick">✓</span></div>').join('');
-}
-
-function selDU(u){sdmu=u;sDU();}
-
-async function stDM(){
-  if(!sdmu){alert('No user selected!');return;}
-  cDM();
-  try {
-    // Check if DM already exists
-    const{data:mm}=await sb.from('lc_members').select('conversation_id').eq('user_id',me.id);
-    let convId = null;
-    if(mm?.length){
-      const mids=mm.map(m=>m.conversation_id);
-      const{data:dc}=await sb.from('lc_conversations').select('id').eq('type','direct').in('id',mids);
-      if(dc?.length){
-        const dids=dc.map(c=>c.id);
-        const{data:sh}=await sb.from('lc_members').select('conversation_id').eq('user_id',sdmu.id).in('conversation_id',dids).limit(1);
-        if(sh?.length) convId=sh[0].conversation_id;
-      }
-    }
-    if(!convId){
-      const{data:nc,error}=await sb.from('lc_conversations').insert({type:'direct',created_by:me.id}).select().single();
-      if(error){alert('Error creating chat: '+error.message);return;}
-      await sb.from('lc_members').insert([
-        {conversation_id:nc.id,user_id:me.id,role:'admin'},
-        {conversation_id:nc.id,user_id:sdmu.id,role:'member'}
-      ]);
-      convId=nc.id;
-    }
-    // Build conv and open directly without relying on cvs
-    const conv={id:convId,type:'direct',created_by:me.id,_o:sdmu,_l:null,avatar_color:'#6c63ff'};
-    // Remove old version if exists
-    cvs=cvs.filter(c=>c.id!==convId);
-    cvs.unshift(conv);
-    cc=conv;
-    // Show chat view directly
-    openChatView(conv);
-  } catch(e){
-    alert('Error: '+e.message);
-  }
-}
-
-function openChatView(conv){
-  lastRead[conv.id]=new Date().toISOString();
-  document.getElementById('emp').style.display='none';
-  const cv=document.getElementById('cv');cv.style.display='flex';
-  document.getElementById('cmain').classList.add('mob');
-  document.getElementById('cmain').style.display='flex';
-  const nm=conv._o?.full_name||conv._o?.username||conv._o?.email||'Unknown';
-  const col=conv._o?.avatar_color||'#6c63ff';
-  const tav=document.getElementById('tav');
-  tav.className='tav';
-  if(conv._o?.avatar_url){tav.innerHTML='<img src="'+esc(conv._o.avatar_url)+'">';tav.style.background='transparent';}
-  else{tav.style.background=col;tav.textContent=(nm).slice(0,2).toUpperCase();}
-  document.getElementById('tn').textContent=nm;
-  document.getElementById('ts').textContent='ID: '+(conv._o?.liquid_id||'');
-  document.getElementById('gsb').style.display='none';
-  document.getElementById('pvb').style.display='flex';
-  rC(cvs);
-  lM(cc.id);
-}
 
 function sJM(m){curJm=m;document.getElementById('jmo').classList.toggle('on',m==='open');document.getElementById('jma').classList.toggle('on',m==='approval');}
 let curJm='open';
