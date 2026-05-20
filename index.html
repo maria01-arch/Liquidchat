@@ -408,7 +408,7 @@ function rC(list){
   if(!list.length){el.innerHTML='<div style="padding:18px 13px;color:var(--tx3);font-size:12px;text-align:center;">No chats found.</div>';return;}
   el.innerHTML=list.map(c=>{
     const ig=c.type==='group';
-    const nm=ig?c.name:(c._o?.full_name||c._o?.username||c._o?.email||'Unknown');
+    const nm=ig?c.name:(c._o?.full_name||c._o?.username||'User '+(c._o?.liquid_id||''));
     const col=ig?(c.avatar_color||'#6c63ff'):(c._o?.avatar_color||'#6c63ff');
     const ini=ig?'👥':((c._o?.full_name||c._o?.username||'??').slice(0,2).toUpperCase());
     const vip=!ig&&c._o?.is_vip;
@@ -443,7 +443,7 @@ async function oC(id){
   }
   // Set topbar
   const ig=cc.type==='group';
-  const nm=ig?cc.name:(cc._o?.full_name||cc._o?.username||cc._o?.email||'Unknown');
+  const nm=ig?cc.name:(cc._o?.full_name||cc._o?.username||'User '+( cc._o?.liquid_id||''));
   const col=ig?(cc.avatar_color||'#6c63ff'):(cc._o?.avatar_color||'#6c63ff');
   const tav=document.getElementById('tav');
   tav.className='tav'+(ig?' g':'');
@@ -613,7 +613,11 @@ async function oGS(){
   document.getElementById('gsjmo').classList.toggle('on',jm==='open');
   document.getElementById('gsjma').classList.toggle('on',jm==='approval');
   document.getElementById('gsmod').style.display='flex';
-  const{data:mems}=await sb.from('lc_members').select('*,profiles:user_id(id,full_name,username,avatar_url,avatar_color,liquid_id)').eq('conversation_id',cc.id);
+  const{data:rawMems}=await sb.from('lc_members').select('*').eq('conversation_id',cc.id);
+  const memUids=(rawMems||[]).map(m=>m.user_id);
+  let memProfs={};
+  if(memUids.length){const{data:mps}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').in('id',memUids);(mps||[]).forEach(p=>memProfs[p.id]=p);}
+  const mems=(rawMems||[]).map(m=>({...m,profiles:memProfs[m.user_id]||null}));
   const crid=cc.created_by;
   document.getElementById('gsml').innerHTML=(mems||[]).map(m=>{
     const p=m.profiles;const ism=m.user_id===me.id;const isc=m.user_id===crid;
@@ -622,7 +626,10 @@ async function oGS(){
     '<button data-uid="'+m.user_id+'" onclick="rmMem(this.dataset.uid)" style="font-size:10px;padding:3px 6px;border-radius:5px;border:1px solid var(--dan);background:none;color:var(--dan);cursor:pointer;">Remove</button></div>':'')+
     '</div>';
   }).join('');
-  const{data:rqs}=await sb.from('lc_join_requests').select('*,profiles:user_id(id,full_name,username,avatar_url,avatar_color,liquid_id)').eq('conversation_id',cc.id).eq('status','pending');
+  const{data:rawRqs}=await sb.from('lc_join_requests').select('*').eq('conversation_id',cc.id).eq('status','pending');
+  let rqProfs={};
+  if(rawRqs?.length){const rqUids=rawRqs.map(r=>r.user_id);const{data:rps}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').in('id',rqUids);(rps||[]).forEach(p=>rqProfs[p.id]=p);}
+  const rqs=(rawRqs||[]).map(r=>({...r,profiles:rqProfs[r.user_id]||null}));
   document.getElementById('gsrl').innerHTML=!rqs?.length?'<div style="color:var(--tx3);font-size:11px;padding:5px;">No pending requests.</div>':(rqs||[]).map(r=>{
     const p=r.profiles;
     return'<div class="ui">'+avH(p,32,'uiav')+'<div style="flex:1"><div class="uinm">'+esc(p?.full_name||p?.username||'Unknown')+'</div></div>'+
