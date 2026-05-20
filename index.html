@@ -448,15 +448,22 @@ async function lM(cid){
   const area=document.getElementById('msgs');
   area.innerHTML='<div class="ld"><span></span><span></span><span></span></div>';
   const{data:msgs,error}=await sb.from('lc_messages')
-    .select('*,profiles:sender_id(id,full_name,username,avatar_url,avatar_color,is_vip,liquid_id)')
+    .select('*')
     .eq('conversation_id',cid)
     .order('created_at',{ascending:true});
   if(error){
-    area.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:13px;padding:28px;">Error loading messages.</div>';
-    console.error('lM error:',error);
+    area.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:13px;padding:28px;">Error: '+error.message+'</div>';
     return;
   }
-  rMsg(msgs||[]);
+  // Fetch sender profiles separately
+  const senderIds=[...new Set((msgs||[]).map(m=>m.sender_id).filter(Boolean))];
+  let profileMap={};
+  if(senderIds.length){
+    const{data:profs}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,is_vip,liquid_id').in('id',senderIds);
+    (profs||[]).forEach(p=>profileMap[p.id]=p);
+  }
+  const msgsWithProfiles=(msgs||[]).map(m=>({...m,profiles:profileMap[m.sender_id]||null}));
+  rMsg(msgsWithProfiles);
 }
 
 function rMsg(msgs){
