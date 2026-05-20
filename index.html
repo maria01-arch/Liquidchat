@@ -432,20 +432,24 @@ async function oC(id){
   lastRead[id]=new Date().toISOString();
   cc=cvs.find(c=>c.id===id);
   if(!cc){
-    const{data:fc}=await sb.from('lc_conversations').select('*').eq('id',id).single().catch(()=>({data:null}));
-    if(!fc){console.error('Conv not found:',id);return;}
+    const{data:fc}=await sb.from('lc_conversations').select('*').eq('id',id).maybeSingle();
+    if(!fc)return;
     fc._l=null;
     cvs.unshift(fc);
     cc=fc;
   }
-  // Make sure _o is loaded for direct chats
-  if(cc.type==='direct'&&!cc._o){
+  // Always reload _o for direct chats to make sure it's fresh
+  if(cc.type==='direct'){
     const{data:om}=await sb.from('lc_members').select('user_id').eq('conversation_id',id).neq('user_id',me.id).limit(1);
-    if(om&&om[0]){const{data:op}=await sb.from('profiles').select('*').eq('id',om[0].user_id).single().catch(()=>({data:null}));cc._o=op;}
+    if(om&&om[0]){
+      const{data:op}=await sb.from('profiles').select('*').eq('id',om[0].user_id).maybeSingle();
+      cc._o=op||cc._o||null;
+    }
   }
   document.getElementById('emp').style.display='none';
   const cv=document.getElementById('cv');cv.style.display='flex';
-  if(window.innerWidth<=660)document.getElementById('cmain').classList.add('mob');
+  document.getElementById('cmain').classList.add('mob');
+  document.getElementById('cmain').style.display='flex';
   const ig=cc.type==='group';
   const nm=ig?cc.name:(cc._o?.full_name||cc._o?.username||cc._o?.email||'Unknown');
   const col=ig?(cc.avatar_color||'#6c63ff'):(cc._o?.avatar_color||'#6c63ff');
@@ -627,7 +631,8 @@ function openChatView(conv){
   lastRead[conv.id]=new Date().toISOString();
   document.getElementById('emp').style.display='none';
   const cv=document.getElementById('cv');cv.style.display='flex';
-  if(window.innerWidth<=660)document.getElementById('cmain').classList.add('mob');
+  document.getElementById('cmain').classList.add('mob');
+  document.getElementById('cmain').style.display='flex';
   const nm=conv._o?.full_name||conv._o?.username||conv._o?.email||'Unknown';
   const col=conv._o?.avatar_color||'#6c63ff';
   const tav=document.getElementById('tav');
