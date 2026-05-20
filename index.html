@@ -386,20 +386,15 @@ async function loadC(){
       c._l=lm||null;
     }
     // Get other user profiles for direct chats
-    const directConvs=cvs.filter(c=>c.type==='direct');
+    const directConvs=cvs.filter(c=>c.type==='direct'&&!c._o);
     for(let c of directConvs){
-      const{data:om}=await sb.from('lc_members')
-        .select('user_id')
-        .eq('conversation_id',c.id)
-        .neq('user_id',me.id)
-        .limit(1);
-      if(om&&om[0]){
-        const{data:op}=await sb.from('profiles')
-          .select('id,full_name,username,avatar_url,avatar_color,is_vip,liquid_id')
-          .eq('id',om[0].user_id)
-          .maybeSingle();
-        c._o=op||null;
-      }
+      try{
+        const{data:om}=await sb.from('lc_members').select('user_id').eq('conversation_id',c.id).neq('user_id',me.id).limit(1);
+        if(om&&om[0]){
+          const{data:op}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,is_vip,liquid_id').eq('id',om[0].user_id).maybeSingle();
+          if(op)c._o=op;
+        }
+      }catch(e){console.error('Profile fetch error:',e);}
     }
     rC(cvs);
   } catch(e) {
@@ -462,12 +457,13 @@ async function oC(id){
   document.getElementById('gsb').style.display=ig&&iam?'flex':'none';
   document.getElementById('pvb').style.display=!ig?'flex':'none';
   rC(cvs);
-  await lM(id);
+  await lM(cc.id);
 }
 
 
 async function lM(cid){
   const area=document.getElementById('msgs');
+  if(!cid){area.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:13px;padding:28px;">No conversation selected.</div>';return;}
   area.innerHTML='<div class="ld"><span></span><span></span><span></span></div>';
   const{data:msgs,error}=await sb.from('lc_messages').select('*').eq('conversation_id',cid).order('created_at',{ascending:true});
   if(error){area.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:13px;padding:28px;">'+error.message+'</div>';return;}
