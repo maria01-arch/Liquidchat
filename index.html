@@ -446,7 +446,8 @@ async function chkA(cid){const{data}=await sb.from('lc_members').select('role').
 
 async function lM(cid){
   const area=document.getElementById('msgs');
-  area.innerHTML='<div class="ld"><span></span><span></span><span></span></div>';
+  const hasContent = area.innerHTML.trim() !== '' && !area.innerHTML.includes('ld');
+  if(!hasContent) area.innerHTML='<div class="ld"><span></span><span></span><span></span></div>';
   const{data:msgs}=await sb.from('lc_messages').select('*,profiles:sender_id(id,full_name,username,avatar_url,avatar_color,is_vip,liquid_id)').eq('conversation_id',cid).order('created_at',{ascending:true});
   rMsg(msgs||[]);
 }
@@ -484,7 +485,6 @@ async function sMsg(){
   }).select().single();
   if(error){console.error('Send error:',error.message);return;}
   sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',cc.id);
-  loadC();
 }
 
 function appendMsg(msg){
