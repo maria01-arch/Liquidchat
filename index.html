@@ -487,19 +487,34 @@ async function loadC(){
   const ids=mems.map(m=>m.conversation_id);
   const{data:cs}=await sb.from('lc_conversations').select('*').in('id',ids).order('updated_at',{ascending:false});
   cvs=cs||[];
-  // Load all data in parallel
+
+  // Step 1: Get all last messages
   await Promise.all(cvs.map(async c=>{
     const{data:lm}=await sb.from('lc_messages').select('content,created_at,message_type,sender_id').eq('conversation_id',c.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
     c._l=lm||null;
-    if(c.type==='direct'){
-      // Get all members of this conversation except me, with their profiles
-      const{data:members}=await sb.from('lc_members').select('user_id,profiles(id,full_name,username,email,avatar_url,avatar_color,is_vip,liquid_id)').eq('conversation_id',c.id).neq('user_id',me.id).limit(1);
-      if(members?.[0]){
-        c._o=members[0].profiles||null;
-        c._oid=members[0].user_id;
-      }
-    }
   }));
+
+  // Step 2: Get all other user IDs for direct chats in one query
+  const directIds=cvs.filter(c=>c.type==='direct').map(c=>c.id);
+  if(directIds.length){
+    const{data:allMembers}=await sb.from('lc_members').select('conversation_id,user_id').in('conversation_id',directIds).neq('user_id',me.id);
+    if(allMembers?.length){
+      const otherUids=[...new Set(allMembers.map(m=>m.user_id))];
+
+      const{data:allProfiles}=await sb.from('profiles').select('id,full_name,username,email,avatar_url,avatar_color,is_vip,liquid_id').in('id',otherUids);
+      const profMap={};
+      (allProfiles||[]).forEach(p=>profMap[p.id]=p);
+      if(!(allProfiles?.length)){
+        document.getElementById('cl').innerHTML='<div style="padding:10px;color:red;font-size:11px;">DEBUG: members='+allMembers.length+' uids='+JSON.stringify(otherUids)+' profiles='+(allProfiles?.length||0)+'</div>';
+        setTimeout(()=>rC(cvs),3000);
+        return;
+      }
+      allMembers.forEach(m=>{
+        const conv=cvs.find(c=>c.id===m.conversation_id);
+        if(conv)conv._o=profMap[m.user_id]||null;
+      });
+    }
+  }
   rC(cvs);
 }
 
