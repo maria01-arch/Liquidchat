@@ -298,6 +298,11 @@ textarea.ti2::placeholder{color:var(--t3);}
 <div class="ov" id="gsmod">
   <div class="mod">
     <h3>⚙️ Group Settings</h3>
+    <div style="text-align:center;margin-bottom:12px;">
+      <div id="gsav" style="width:60px;height:60px;border-radius:14px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:28px;"></div>
+      <label style="background:var(--s2);border:1px dashed var(--ac);border-radius:9px;padding:6px 14px;color:var(--ac);font-size:12px;cursor:pointer;display:inline-block;" for="gsavf">📷 Change Group Photo</label>
+      <input type="file" id="gsavf" accept="image/*" onchange="upGrpAv(this)" style="display:none">
+    </div>
     <div class="sl">Group Tag</div><input type="text" id="gst">
     <div class="sl">Invite Link</div>
     <div style="display:flex;gap:7px;margin-bottom:10px;"><input type="text" id="gsl" readonly style="flex:1;margin:0;font-size:11px;"><button class="mb p" onclick="cpL()" style="flex:0;padding:9px 12px;white-space:nowrap;margin-top:0;">Copy</button></div>
@@ -398,7 +403,7 @@ const sb=createClient(SU,SK);
 let me=null,mp=null,cc=null,cvs=[],sdmu=null,sgus=[],jm='open',gsr=[],dmr=[],rt=null,vu=null,lr={};
 
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function nm(p){if(!p)return'Unknown';return p.full_name||p.username||(p.liquid_id?'User '+p.liquid_id:'Unknown');}
+function nm(p){if(!p)return'Unknown';return p.full_name||p.username||(p.email?p.email.split('@')[0]:null)||(p.liquid_id?'User '+p.liquid_id:'Unknown');}
 function avH(p,sz,cls){
   const col=p?.avatar_color||'#6c63ff';
   const ini=(nm(p)||'?').slice(0,2).toUpperCase();
@@ -488,7 +493,7 @@ async function loadC(){
     if(c.type==='direct'){
       const{data:om}=await sb.from('lc_members').select('user_id').eq('conversation_id',c.id).neq('user_id',me.id).limit(1);
       if(om?.[0]){
-        const{data:op}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,is_vip,liquid_id').eq('id',om[0].user_id).maybeSingle();
+        const{data:op}=await sb.from('profiles').select('id,full_name,username,email,avatar_url,avatar_color,is_vip,liquid_id').eq('id',om[0].user_id).maybeSingle();
         c._o=op||null;
       }
     }
@@ -508,7 +513,7 @@ function rC(list){
     const tm=c._l?ft(c._l.created_at):'';
     const act=cc?.id===c.id?'on':'';
     const unread=c._l&&c._l.sender_id!==me.id&&(!lr[c.id]||new Date(c._l.created_at)>new Date(lr[c.id]));
-    const avEl=ig?'<div class="av grp" style="background:'+col+'">👥</div>':(c._o?.avatar_url?'<div class="av"><img src="'+esc(c._o.avatar_url)+'"></div>':'<div class="av" style="background:'+col+'">'+ini+'</div>');
+    const avEl=ig?(c.avatar_url?'<div class="av grp"><img src="'+esc(c.avatar_url)+'"></div>':'<div class="av grp" style="background:'+col+'">👥</div>'):(c._o?.avatar_url?'<div class="av"><img src="'+esc(c._o.avatar_url)+'"></div>':'<div class="av" style="background:'+col+'">'+ini+'</div>');
     return'<div class="ci '+act+'" onclick="oC(\''+c.id+'\')">'+avEl+'<div class="cinfo"><div class="cname">'+esc(name)+'</div><div class="cprev">'+esc(lt.substring(0,42))+'</div></div><div class="cmeta"><div class="ct">'+tm+'</div>'+(unread?'<div class="dot"></div>':'')+'</div></div>';
   }).join('');
 }
@@ -541,6 +546,7 @@ async function oC(id){
   const tav=document.getElementById('tav');
   tav.className='tav'+(ig?' grp':'');
   if(!ig&&cc._o?.avatar_url){tav.innerHTML='<img src="'+esc(cc._o.avatar_url)+'">';tav.style.background='transparent';}
+  else if(ig&&cc.avatar_url){tav.innerHTML='<img src="'+esc(cc.avatar_url)+'">';tav.style.background='transparent';}
   else{tav.style.background=ig?'var(--s3)':col;tav.innerHTML=ig?'👥':(name||'?').slice(0,2).toUpperCase();}
   document.getElementById('tn').textContent=name||(cc._o?.liquid_id||'');
   if(ig){const{count}=await sb.from('lc_members').select('*',{count:'exact',head:true}).eq('conversation_id',id);document.getElementById('ts').textContent=count+' members';}
@@ -711,6 +717,10 @@ async function cG(){
 // GROUP SETTINGS
 async function oGS(){
   if(!cc||cc.type!=='group')return;
+  // Show current group avatar
+  const gsav=document.getElementById('gsav');
+  if(cc.avatar_url){gsav.innerHTML='<img src="'+cc.avatar_url+'" style="width:60px;height:60px;border-radius:14px;object-fit:cover;">';}
+  else{gsav.style.background=cc.avatar_color||'#6c63ff';gsav.textContent='👥';}
   document.getElementById('gst').value=cc.group_tag||'';
   document.getElementById('gsl').value='https://liquidchats.vercel.app/join/'+(cc.invite_code||'');
   document.getElementById('gsjmo').classList.toggle('on',(cc.join_mode||'open')==='open');
@@ -738,6 +748,20 @@ async function oGS(){
     '<div style="display:flex;gap:4px;"><button data-r="'+r.id+'" data-u="'+r.user_id+'" onclick="apR(this.dataset.r,this.dataset.u)" style="font-size:10px;padding:3px 6px;border-radius:5px;border:none;background:var(--ac);color:#fff;cursor:pointer;">Approve</button>'+
     '<button data-r="'+r.id+'" onclick="rjR(this.dataset.r)" style="font-size:10px;padding:3px 6px;border-radius:5px;border:1px solid var(--red);background:none;color:var(--red);cursor:pointer;">Reject</button></div></div>';
   }).join('');
+}
+
+async function upGrpAv(inp){
+  const f=inp.files[0];if(!f||!cc)return;
+  const ext=f.name.split('.').pop();
+  const{data:ud,error}=await sb.storage.from('avatars').upload('groups/'+cc.id+'.'+ext,f,{upsert:true});
+  if(error){alert('Upload failed: '+error.message);return;}
+  const{data:ul}=sb.storage.from('avatars').getPublicUrl(ud.path);
+  await sb.from('lc_conversations').update({avatar_url:ul.publicUrl}).eq('id',cc.id);
+  cc.avatar_url=ul.publicUrl;
+  const gsav=document.getElementById('gsav');
+  gsav.innerHTML='<img src="'+ul.publicUrl+'" style="width:60px;height:60px;border-radius:14px;object-fit:cover;">';
+  alert('Group photo updated!');
+  await loadC();
 }
 
 function uJM(m){cc.join_mode=m;document.getElementById('gsjmo').classList.toggle('on',m==='open');document.getElementById('gsjma').classList.toggle('on',m==='approval');}
@@ -892,11 +916,17 @@ window.addEventListener('popstate', function(e){
 
 // SESSION CHECK
 (async()=>{
+  const path=window.location.pathname;
+  const isInvite=path.startsWith('/join/');
   document.getElementById('auth').classList.add('show');
   const{data:{session}}=await sb.auth.getSession();
   if(session?.user){
     document.getElementById('auth').classList.remove('show');
     await initApp(session.user);
+  } else if(isInvite){
+    // Show auth with message about invite
+    document.getElementById('aerr').textContent='Please sign in to join this group.';
+    document.getElementById('aerr').style.display='block';
   }
 })();
 sb.auth.onAuthStateChange(async(ev,sess)=>{
