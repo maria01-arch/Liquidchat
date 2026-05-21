@@ -403,7 +403,7 @@ const sb=createClient(SU,SK);
 let me=null,mp=null,cc=null,cvs=[],sdmu=null,sgus=[],jm='open',gsr=[],dmr=[],rt=null,vu=null,lr={};
 
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function nm(p){if(!p)return'Unknown';return p.full_name||p.username||(p.email?p.email.split('@')[0]:null)||(p.liquid_id?'User '+p.liquid_id:'Unknown');}
+function nm(p){if(!p)return'Unknown';if(p.full_name)return p.full_name;if(p.username)return p.username;if(p.email)return p.email.split('@')[0];if(p.liquid_id)return p.liquid_id;return'Unknown';}
 function avH(p,sz,cls){
   const col=p?.avatar_color||'#6c63ff';
   const ini=(nm(p)||'?').slice(0,2).toUpperCase();
@@ -753,15 +753,18 @@ async function oGS(){
 async function upGrpAv(inp){
   const f=inp.files[0];if(!f||!cc)return;
   const ext=f.name.split('.').pop();
-  const{data:ud,error}=await sb.storage.from('avatars').upload('groups/'+cc.id+'.'+ext,f,{upsert:true});
+  const path='groups/'+cc.id+'.'+ext;
+  const{data:ud,error}=await sb.storage.from('avatars').upload(path,f,{upsert:true});
   if(error){alert('Upload failed: '+error.message);return;}
-  const{data:ul}=sb.storage.from('avatars').getPublicUrl(ud.path);
-  await sb.from('lc_conversations').update({avatar_url:ul.publicUrl}).eq('id',cc.id);
-  cc.avatar_url=ul.publicUrl;
+  const{data:ul}=sb.storage.from('avatars').getPublicUrl(path);
+  const avatarUrl=ul.publicUrl+'?t='+Date.now();
+  const{error:ue}=await sb.from('lc_conversations').update({name:cc.name,avatar_url:avatarUrl}).eq('id',cc.id);
+  if(ue){alert('Save failed: '+ue.message);return;}
+  cc.avatar_url=avatarUrl;
   const gsav=document.getElementById('gsav');
-  gsav.innerHTML='<img src="'+ul.publicUrl+'" style="width:60px;height:60px;border-radius:14px;object-fit:cover;">';
-  alert('Group photo updated!');
+  gsav.innerHTML='<img src="'+avatarUrl+'" style="width:60px;height:60px;border-radius:14px;object-fit:cover;">';
   await loadC();
+  alert('Group photo updated!');
 }
 
 function uJM(m){cc.join_mode=m;document.getElementById('gsjmo').classList.toggle('on',m==='open');document.getElementById('gsjma').classList.toggle('on',m==='approval');}
