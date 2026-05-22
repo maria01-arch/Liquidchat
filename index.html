@@ -111,6 +111,13 @@ input::placeholder{color:var(--t3);}
 .bbl.me{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;border-bottom-right-radius:3px;}
 .bbl.sys{background:none;color:var(--t3);font-size:11px;text-align:center;padding:2px 6px;}
 .bbl img{max-width:100%;border-radius:8px;display:block;cursor:pointer;}
+.macts2{display:none;position:absolute;background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:4px;gap:4px;z-index:10;box-shadow:0 4px 20px rgba(0,0,0,.5);}
+.macts2.show{display:flex;}
+.mac{padding:5px 10px;border:none;background:none;color:var(--tx);font-size:12px;cursor:pointer;border-radius:5px;white-space:nowrap;}
+.mac:hover{background:var(--s2);}
+.mac.del{color:var(--red);}
+.mwrap{position:relative;}
+.vo-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);border-radius:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:#fff;gap:6px;}
 .mt{font-size:10px;color:var(--t3);margin-top:2px;}
 .mrow.me .mt{text-align:right;}
 .ibar{padding:10px 12px;border-top:1px solid var(--bd);background:var(--s1);display:flex;align-items:flex-end;gap:8px;flex-shrink:0;}
@@ -261,6 +268,7 @@ textarea.ti2::placeholder{color:var(--t3);}
           <textarea class="ti2" id="mta" placeholder="Write a message..." rows="1" onkeydown="hK(event)" oninput="aR(this)"></textarea>
           <label class="imgb" for="imgf">📎</label>
           <input type="file" id="imgf" accept="image/*" onchange="sImg(this)">
+        <button class="imgb" id="vobtn" onclick="toggleVO()" title="View Once">👁</button>
         </div>
         <button class="sndb" onclick="sMsg()">➤</button>
       </div>
@@ -592,11 +600,28 @@ async function lM(cid){
     const ig=cc?.type==='group';
     if(msg.message_type==='system'){html+='<div class="mrow"><div class="mwrap" style="width:100%"><div class="bbl sys">'+esc(msg.content)+'</div></div></div>';return;}
     const bc=msg.message_type==='image'&&msg.image_url?'<img src="'+esc(msg.image_url)+'" onclick="oIV(this.src)">'+(msg.content?'<br>'+esc(msg.content):''):esc(msg.content||'');
+    const vo=msg.view_once&&msg.sender_id!==me.id&&msg.viewed;
+    const voUnread=msg.view_once&&msg.sender_id!==me.id&&!msg.viewed;
+    const bblContent=voUnread?'<div class="vo-overlay" onclick="viewOnce(\'' +msg.id+ '\',this)">👁 Tap to view once</div>'+bc:bc;
+    const editedTag=msg.is_edited?'<span style="font-size:9px;color:var(--t3);margin-left:4px;">(edited)</span>':'';
+    const actId='act_'+msg.id;
     if(!mine){
       html+=(ig&&p?'<div class="msn">'+esc(nm(p))+'</div>':'')+
-        '<div class="mrow">'+avH(p,24,'mav2')+'<div class="mwrap"><div class="bbl th">'+bc+'</div><div class="mt">'+t+'</div></div></div>';
+        '<div class="mrow">'+avH(p,24,'mav2')+
+        '<div class="mwrap">'+
+        '<div class="bbl th">'+( vo?'<span style="color:var(--t3);font-size:13px;">👁 Viewed once</span>':bblContent)+'</div>'+
+        '<div class="mt">'+t+editedTag+'</div>'+
+        '<div class="macts2" id="'+actId+'">'+
+        '<button class="mac" data-reply="'+esc((msg.content||'').substring(0,30))+'" onclick="replyMsg(this.dataset.reply)">↩ Reply</button>'+
+        '</div></div></div>';
     }else{
-      html+='<div class="mrow me"><div class="mwrap"><div class="bbl me">'+bc+'</div><div class="mt">'+t+'</div></div></div>';
+      html+='<div class="mrow me"><div class="mwrap">'+
+        '<div class="bbl me">'+bblContent+'</div>'+
+        '<div class="mt">'+t+editedTag+'</div>'+
+        '<div class="macts2" id="'+actId+'">'+
+        '<button class="mac" data-id="'+msg.id+'" data-c="'+esc(msg.content||'')+'" onclick="editMsgBtn(this.dataset.id,this.dataset.c)">✏️ Edit</button>'+
+        '<button class="mac del" data-id="'+msg.id+'" onclick="delMsg(this.dataset.id)">🗑 Delete</button>'+
+        '</div></div></div>';
     }
   });
   area.innerHTML=html;
@@ -609,7 +634,9 @@ async function sMsg(){
   const ct=ta.value.trim();
   if(!ct||!cc)return;
   ta.value='';ta.style.height='auto';
-  const{error}=await sb.from('lc_messages').insert({conversation_id:cc.id,sender_id:me.id,content:ct,message_type:'text'});
+  const msgData={conversation_id:cc.id,sender_id:me.id,content:ct,message_type:'text'};
+  if(voMode){msgData.view_once=true;msgData.viewed=false;voMode=false;document.getElementById('vobtn').style.color='var(--t2)';}
+  const{error}=await sb.from('lc_messages').insert(msgData);
   if(error){alert('Failed: '+error.message);ta.value=ct;return;}
   sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',cc.id);
   await lM(cc.id);
@@ -884,6 +911,80 @@ async function upAv(inp){
 }
 
 function tAM(){const m=document.getElementById('amenu');m.style.display=m.style.display==='flex'?'none':'flex';}
+
+// ── MESSAGE ACTIONS ──
+let voMode=false;
+let activeMenu=null;
+
+function toggleVO(){
+  voMode=!voMode;
+  const btn=document.getElementById('vobtn');
+  btn.style.color=voMode?'var(--ac)':'var(--t2)';
+  btn.title=voMode?'View Once ON':'View Once OFF';
+}
+
+function showMsgMenu(e,el){
+  e.stopPropagation();
+  const msgId=el.closest('.mwrap').querySelector('.macts2').id.replace('act_','');
+  if(activeMenu&&activeMenu!==msgId){
+    const old=document.getElementById('act_'+activeMenu);
+    if(old)old.classList.remove('show');
+  }
+  const menu=document.getElementById('act_'+msgId);
+  if(!menu)return;
+  const isOpen=menu.classList.contains('show');
+  menu.classList.toggle('show',!isOpen);
+  activeMenu=isOpen?null:msgId;
+}
+
+function editMsgBtn(msgId,oldContent){
+  editMsg(msgId,oldContent);
+}
+
+// Close menus when clicking elsewhere
+document.addEventListener('click',()=>{
+  if(activeMenu){
+    const m=document.getElementById('act_'+activeMenu);
+    if(m)m.classList.remove('show');
+    activeMenu=null;
+  }
+});
+
+async function editMsg(msgId,oldContent){
+  const newContent=prompt('Edit message:',oldContent);
+  if(!newContent||newContent===oldContent)return;
+  const{error}=await sb.from('lc_messages').update({content:newContent,is_edited:true}).eq('id',msgId).eq('sender_id',me.id);
+  if(error){alert('Error: '+error.message);return;}
+  await lM(cc.id);
+}
+
+async function delMsg(msgId){
+  if(!confirm('Delete this message?'))return;
+  const{error}=await sb.from('lc_messages').delete().eq('id',msgId).eq('sender_id',me.id);
+  if(error){alert('Error: '+error.message);return;}
+  await lM(cc.id);
+  loadC();
+}
+
+function replyMsg(preview){
+  const ta=document.getElementById('mta');
+  ta.value='> '+preview+'...\n';
+  ta.focus();
+  ta.setSelectionRange(ta.value.length,ta.value.length);
+  // Close menu
+  if(activeMenu){
+    const m=document.getElementById('act_'+activeMenu);
+    if(m)m.classList.remove('show');
+    activeMenu=null;
+  }
+}
+
+async function viewOnce(msgId,el){
+  // Mark as viewed and show content
+  await sb.from('lc_messages').update({viewed:true}).eq('id',msgId);
+  const overlay=el.closest('.vo-overlay');
+  if(overlay)overlay.remove();
+}
 
 function oVIP(){document.getElementById('cMP')&&cMP();document.getElementById('vipmod').classList.add('show');history.pushState(null,'',window.location.href);}
 function cVIP(){document.getElementById('vipmod').classList.remove('show');}
