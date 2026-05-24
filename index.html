@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LiquidChat 🫟</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#6c63ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1625129471311969" crossorigin="anonymous"></script>
 <style>
@@ -118,6 +122,11 @@ input::placeholder{color:var(--t3);}
 .mac.del{color:var(--red);}
 .mwrap{position:relative;}
 .vo-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);border-radius:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:#fff;gap:6px;}
+#ctxmenu{position:fixed;background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:6px;z-index:999;display:none;flex-direction:column;gap:2px;box-shadow:0 8px 32px rgba(0,0,0,.6);min-width:160px;}
+#ctxmenu button{padding:10px 16px;border:none;background:none;color:var(--tx);font-size:14px;cursor:pointer;border-radius:8px;text-align:left;font-family:inherit;display:flex;align-items:center;gap:8px;}
+#ctxmenu button:hover{background:var(--s2);}
+#ctxmenu button.red{color:var(--red);}
+#ctxmenu .divider{height:1px;background:var(--bd);margin:3px 0;}
 .mt{font-size:10px;color:var(--t3);margin-top:2px;}
 .mrow.me .mt{text-align:right;}
 .ibar{padding:10px 12px;border-top:1px solid var(--bd);background:var(--s1);display:flex;align-items:flex-end;gap:8px;flex-shrink:0;}
@@ -192,6 +201,14 @@ textarea.ti2::placeholder{color:var(--t3);}
 <body>
 
 <div id="iv" onclick="closeIV()"><img id="ivi"></div>
+
+<!-- CONTEXT MENU -->
+<div id="ctxmenu">
+  <button id="ctx-copy" onclick="ctxCopy()">📋 Copy</button>
+  <div class="divider" id="ctx-divider"></div>
+  <button id="ctx-edit" onclick="ctxEdit()">✏️ Edit</button>
+  <button id="ctx-del" onclick="ctxDel()" class="red">🗑 Delete</button>
+</div>
 
 <!-- AUTH -->
 <div id="auth">
@@ -486,6 +503,7 @@ async function initApp(user){
   await loadC();
   subRT();
   await hIL();
+  initNotifications();
 }
 
 // LOAD CONVERSATIONS
@@ -609,18 +627,13 @@ async function lM(cid){
       html+=(ig&&p?'<div class="msn">'+esc(nm(p))+'</div>':'')+
         '<div class="mrow">'+avH(p,24,'mav2')+
         '<div class="mwrap">'+
-        '<div class="bbl th">'+(vo?'<span style="color:var(--t3);font-size:13px;">👁 Viewed once</span>':bblContent)+'</div>'+
+        '<div class="bbl th" data-id="'+msg.id+'" data-content="'+esc(msg.content||'')+'" data-mine="0" oncontextmenu="showCtx(event,this)" ontouchstart="lpStart(event,this)" ontouchend="lpEnd()" ontouchmove="lpEnd()">'+(vo?'<span style="color:var(--t3);font-size:13px;">👁 Tap to view once</span>':bblContent)+'</div>'+
         '<div class="mt">'+t+(msg.is_edited?'<span style="font-size:9px;color:var(--t3);"> edited</span>':'')+'</div>'+
         '</div></div>';
     }else{
-      const mid=msg.id;
       html+='<div class="mrow me"><div class="mwrap">'+
-        '<div class="bbl me" style="cursor:pointer" id="bbl_'+mid+'">'+bblContent+'</div>'+
+        '<div class="bbl me" data-id="'+msg.id+'" data-content="'+esc(msg.content||'')+'" data-mine="1" oncontextmenu="showCtx(event,this)" ontouchstart="lpStart(event,this)" ontouchend="lpEnd()" ontouchmove="lpEnd()">'+bblContent+'</div>'+
         '<div class="mt" style="text-align:right">'+t+(msg.is_edited?'<span style="font-size:9px;color:var(--t3);"> edited</span>':'')+'</div>'+
-        '<div class="msg-menu" id="menu_'+mid+'" style="display:none;flex-direction:column;gap:3px;margin-top:4px;align-items:flex-end;">'+
-          '<button style="background:var(--s2);border:1px solid var(--bd);color:var(--tx);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;" data-mid="'+mid+'" onclick="editMsg(this.dataset.mid)">✏️ Edit</button>'+
-          '<button style="background:rgba(255,79,106,.1);border:1px solid var(--red);color:var(--red);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;" data-mid="'+mid+'" onclick="delMsg(this.dataset.mid)">🗑 Delete</button>'+
-        '</div>'+
         '</div></div>';
     }
   });
@@ -673,6 +686,13 @@ function subRT(){
   rt=sb.channel('lc').on('postgres_changes',{event:'INSERT',schema:'public',table:'lc_messages'},async(pl)=>{
     if(cc&&pl.new.conversation_id===cc.id)await lM(cc.id);
     loadC();
+    // Send notification if message is from someone else
+    if(pl.new.sender_id!==me.id){
+      const{data:sender}=await sb.from('profiles').select('full_name,username').eq('id',pl.new.sender_id).maybeSingle();
+      const senderName=sender?.full_name||sender?.username||'Someone';
+      const body=pl.new.message_type==='image'?'📷 Sent an image':(pl.new.content||'');
+      sendNotification('💬 '+senderName,body);
+    }
   }).subscribe();
 }
 
@@ -914,6 +934,110 @@ function tAM(){const m=document.getElementById('amenu');m.style.display=m.style.
 
 // ── MESSAGE ACTIONS ──
 let voMode=false;
+let ctxMsg=null;
+let lpTimer=null;
+
+// Long press handlers
+function lpStart(e,el){
+  lpTimer=setTimeout(()=>{
+    e.preventDefault();
+    showCtx(e,el);
+  },500);
+}
+function lpEnd(){clearTimeout(lpTimer);}
+
+function showCtx(e,el){
+  e.preventDefault();
+  ctxMsg={id:el.dataset.id,content:el.dataset.content,mine:el.dataset.mine==='1'};
+  const menu=document.getElementById('ctxmenu');
+  const edit=document.getElementById('ctx-edit');
+  const del=document.getElementById('ctx-del');
+  const div=document.getElementById('ctx-divider');
+  // Show edit/delete only for own messages
+  edit.style.display=ctxMsg.mine?'flex':'none';
+  del.style.display=ctxMsg.mine?'flex':'none';
+  div.style.display=ctxMsg.mine?'block':'none';
+  // Position menu
+  const x=Math.min(e.clientX||e.touches?.[0]?.clientX||100, window.innerWidth-170);
+  const y=Math.min(e.clientY||e.touches?.[0]?.clientY||100, window.innerHeight-160);
+  menu.style.left=x+'px';
+  menu.style.top=y+'px';
+  menu.style.display='flex';
+}
+
+function ctxCopy(){
+  if(!ctxMsg)return;
+  navigator.clipboard.writeText(ctxMsg.content).then(()=>{
+    document.getElementById('ctxmenu').style.display='none';
+  }).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=ctxMsg.content;
+    document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    document.getElementById('ctxmenu').style.display='none';
+  });
+}
+
+async function ctxEdit(){
+  document.getElementById('ctxmenu').style.display='none';
+  if(!ctxMsg)return;
+  const newText=prompt('Edit message:',ctxMsg.content);
+  if(!newText||newText===ctxMsg.content)return;
+  const{error}=await sb.from('lc_messages').update({content:newText,is_edited:true}).eq('id',ctxMsg.id).eq('sender_id',me.id);
+  if(error){alert('Error: '+error.message);return;}
+  await lM(cc.id);
+}
+
+async function ctxDel(){
+  document.getElementById('ctxmenu').style.display='none';
+  if(!ctxMsg)return;
+  if(!confirm('Delete this message?'))return;
+  const{error}=await sb.from('lc_messages').delete().eq('id',ctxMsg.id).eq('sender_id',me.id);
+  if(error){alert('Error: '+error.message);return;}
+  await lM(cc.id);loadC();
+}
+
+// Close context menu on outside click
+document.addEventListener('click',()=>document.getElementById('ctxmenu').style.display='none');
+
+// Legacy functions (keep for compatibility)
+async function editMsg(mid){
+  const newText=prompt('Edit message:');
+  if(!newText)return;
+  await sb.from('lc_messages').update({content:newText,is_edited:true}).eq('id',mid).eq('sender_id',me.id);
+  await lM(cc.id);
+}
+async function delMsg(mid){
+  if(!confirm('Delete?'))return;
+  await sb.from('lc_messages').delete().eq('id',mid).eq('sender_id',me.id);
+  await lM(cc.id);loadC();
+}
+
+async function viewOnce(mid,el){
+  await sb.from('lc_messages').update({viewed:true}).eq('id',mid);
+  await lM(cc.id);
+}
+
+function toggleVO(){
+  voMode=!voMode;
+  document.getElementById('vobtn').style.color=voMode?'var(--ac)':'var(--t2)';
+}
+
+// ── NOTIFICATIONS ──
+async function initNotifications(){
+  if(!('Notification' in window))return;
+  if(Notification.permission==='default'){
+    await Notification.requestPermission();
+  }
+}
+
+function sendNotification(title,body,icon){
+  if(Notification.permission!=='granted')return;
+  if(document.visibilityState==='visible')return; // Only notify when app is in background
+  const n=new Notification(title,{body,icon:icon||'/favicon.ico',badge:'/favicon.ico',tag:'liquidchat-msg',renotify:true});
+  n.onclick=()=>{window.focus();n.close();};
+}
 
 function toggleVO(){
   voMode=!voMode;
