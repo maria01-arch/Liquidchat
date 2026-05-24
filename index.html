@@ -609,19 +609,19 @@ async function lM(cid){
       html+=(ig&&p?'<div class="msn">'+esc(nm(p))+'</div>':'')+
         '<div class="mrow">'+avH(p,24,'mav2')+
         '<div class="mwrap">'+
-        '<div class="bbl th">'+( vo?'<span style="color:var(--t3);font-size:13px;">👁 Viewed once</span>':bblContent)+'</div>'+
-        '<div class="mt">'+t+editedTag+'</div>'+
-        '<div class="macts2" id="'+actId+'">'+
-        '<button class="mac" data-reply="'+esc((msg.content||'').substring(0,30))+'" onclick="replyMsg(this.dataset.reply)">↩ Reply</button>'+
-        '</div></div></div>';
+        '<div class="bbl th">'+(vo?'<span style="color:var(--t3);font-size:13px;">👁 Viewed once</span>':bblContent)+'</div>'+
+        '<div class="mt">'+t+(msg.is_edited?'<span style="font-size:9px;color:var(--t3);"> edited</span>':'')+'</div>'+
+        '</div></div>';
     }else{
+      const mid=msg.id;
       html+='<div class="mrow me"><div class="mwrap">'+
-        '<div class="bbl me">'+bblContent+'</div>'+
-        '<div class="mt">'+t+editedTag+'</div>'+
-        '<div class="macts2" id="'+actId+'">'+
-        '<button class="mac" data-id="'+msg.id+'" data-c="'+esc(msg.content||'')+'" onclick="editMsgBtn(this.dataset.id,this.dataset.c)">✏️ Edit</button>'+
-        '<button class="mac del" data-id="'+msg.id+'" onclick="delMsg(this.dataset.id)">🗑 Delete</button>'+
-        '</div></div></div>';
+        '<div class="bbl me" style="cursor:pointer" id="bbl_'+mid+'">'+bblContent+'</div>'+
+        '<div class="mt" style="text-align:right">'+t+(msg.is_edited?'<span style="font-size:9px;color:var(--t3);"> edited</span>':'')+'</div>'+
+        '<div class="msg-menu" id="menu_'+mid+'" style="display:none;flex-direction:column;gap:3px;margin-top:4px;align-items:flex-end;">'+
+          '<button style="background:var(--s2);border:1px solid var(--bd);color:var(--tx);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;" onclick="editMsg(''+mid+'')">✏️ Edit</button>'+
+          '<button style="background:rgba(255,79,106,.1);border:1px solid var(--red);color:var(--red);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;" onclick="delMsg(''+mid+'')">🗑 Delete</button>'+
+        '</div>'+
+        '</div></div>';
     }
   });
   area.innerHTML=html;
@@ -911,6 +911,54 @@ async function upAv(inp){
 }
 
 function tAM(){const m=document.getElementById('amenu');m.style.display=m.style.display==='flex'?'none':'flex';}
+
+// ── MESSAGE ACTIONS ──
+let voMode=false;
+
+function toggleVO(){
+  voMode=!voMode;
+  document.getElementById('vobtn').style.color=voMode?'var(--ac)':'var(--t2)';
+}
+
+function toggleMsgMenu(mid){
+  const menu=document.getElementById('menu_'+mid);
+  if(!menu)return;
+  const isOpen=menu.style.display==='flex';
+  // Close all menus first
+  document.querySelectorAll('.msg-menu').forEach(m=>m.style.display='none');
+  if(!isOpen)menu.style.display='flex';
+}
+
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.mwrap'))
+    document.querySelectorAll('.msg-menu').forEach(m=>m.style.display='none');
+});
+
+async function editMsg(mid){
+  document.querySelectorAll('.msg-menu').forEach(m=>m.style.display='none');
+  const bbl=document.getElementById('bbl_'+mid);
+  const oldText=bbl?bbl.textContent.trim():'';
+  const newText=prompt('Edit message:',oldText);
+  if(!newText||newText===oldText)return;
+  const{error}=await sb.from('lc_messages').update({content:newText,is_edited:true}).eq('id',mid).eq('sender_id',me.id);
+  if(error){alert('Error: '+error.message);return;}
+  await lM(cc.id);
+}
+
+async function delMsg(mid){
+  document.querySelectorAll('.msg-menu').forEach(m=>m.style.display='none');
+  if(!confirm('Delete this message?'))return;
+  const{error}=await sb.from('lc_messages').delete().eq('id',mid).eq('sender_id',me.id);
+  if(error){alert('Error: '+error.message);return;}
+  await lM(cc.id);loadC();
+}
+
+async function viewOnce(mid,el){
+  await sb.from('lc_messages').update({viewed:true}).eq('id',mid);
+  if(el)el.parentElement.querySelector('.vo-overlay')?.remove();
+}
+
+function function tAM(){const m=document.getElementById('amenu');m.style.display=m.style.display==='flex'?'none':'flex';}
 
 // ── MESSAGE ACTIONS ──
 let voMode=false;
