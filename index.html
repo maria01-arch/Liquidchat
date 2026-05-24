@@ -618,8 +618,8 @@ async function lM(cid){
         '<div class="bbl me" style="cursor:pointer" id="bbl_'+mid+'">'+bblContent+'</div>'+
         '<div class="mt" style="text-align:right">'+t+(msg.is_edited?'<span style="font-size:9px;color:var(--t3);"> edited</span>':'')+'</div>'+
         '<div class="msg-menu" id="menu_'+mid+'" style="display:none;flex-direction:column;gap:3px;margin-top:4px;align-items:flex-end;">'+
-          '<button style="background:var(--s2);border:1px solid var(--bd);color:var(--tx);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;" onclick="editMsg(''+mid+'')">✏️ Edit</button>'+
-          '<button style="background:rgba(255,79,106,.1);border:1px solid var(--red);color:var(--red);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;" onclick="delMsg(''+mid+'')">🗑 Delete</button>'+
+          '<button style="background:var(--s2);border:1px solid var(--bd);color:var(--tx);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;" data-mid="'+mid+'" onclick="editMsg(this.dataset.mid)">✏️ Edit</button>'+
+          '<button style="background:rgba(255,79,106,.1);border:1px solid var(--red);color:var(--red);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;" data-mid="'+mid+'" onclick="delMsg(this.dataset.mid)">🗑 Delete</button>'+
         '</div>'+
         '</div></div>';
     }
@@ -958,10 +958,9 @@ async function viewOnce(mid,el){
   if(el)el.parentElement.querySelector('.vo-overlay')?.remove();
 }
 
-function function tAM(){const m=document.getElementById('amenu');m.style.display=m.style.display==='flex'?'none':'flex';}
+function tAM(){const m=document.getElementById('amenu');m.style.display=m.style.display==='flex'?'none':'flex';}
 
 // ── MESSAGE ACTIONS ──
-let voMode=false;
 let activeMenu=null;
 
 function toggleVO(){
