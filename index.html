@@ -537,6 +537,18 @@ async function loadC(){
     }
   }
   rC(cvs);
+  // Second pass - reload any convs that still show Unknown
+  const unknownConvs=cvs.filter(c=>c.type==='direct'&&!c._o);
+  if(unknownConvs.length){
+    for(const c of unknownConvs){
+      const{data:om}=await sb.from('lc_members').select('user_id').eq('conversation_id',c.id).neq('user_id',me.id).limit(1);
+      if(om?.[0]){
+        const{data:op}=await sb.from('profiles').select('*').eq('id',om[0].user_id).maybeSingle();
+        if(op)c._o=op;
+      }
+    }
+    rC(cvs);
+  }
 }
 
 function rC(list){
@@ -550,7 +562,7 @@ function rC(list){
     const lt=c._l?(c._l.message_type==='image'?'📷 Image':c._l.content||''):'No messages yet';
     const tm=c._l?ft(c._l.created_at):'';
     const act=cc?.id===c.id?'on':'';
-    const unread=c._l&&c._l.sender_id!==me.id&&(!lr[c.id]||new Date(c._l.created_at)>new Date(lr[c.id]));
+    const unread=c._l&&c._l.sender_id&&c._l.sender_id!==me.id&&(!lr[c.id]||new Date(c._l.created_at)>new Date(lr[c.id]));
     const avEl=ig?(c.avatar_url?'<div class="av grp"><img src="'+esc(c.avatar_url)+'"></div>':'<div class="av grp" style="background:'+col+'">👥</div>'):(c._o?.avatar_url?'<div class="av"><img src="'+esc(c._o.avatar_url)+'"></div>':'<div class="av" style="background:'+col+'">'+ini+'</div>');
     return'<div class="ci '+act+'" onclick="oC(\''+c.id+'\')">'+avEl+'<div class="cinfo"><div class="cname">'+esc(name)+'</div><div class="cprev">'+esc(lt.substring(0,42))+'</div></div><div class="cmeta"><div class="ct">'+tm+'</div>'+(unread?'<div class="dot"></div>':'')+'</div></div>';
   }).join('');
@@ -684,7 +696,11 @@ function goBack(){
 function subRT(){
   if(rt)sb.removeChannel(rt);
   rt=sb.channel('lc').on('postgres_changes',{event:'INSERT',schema:'public',table:'lc_messages'},async(pl)=>{
-    if(cc&&pl.new.conversation_id===cc.id)await lM(cc.id);
+    if(cc&&pl.new.conversation_id===cc.id){
+      await lM(cc.id);
+      const area=document.getElementById('msgs');
+      if(area)area.scrollTop=area.scrollHeight;
+    }
     loadC();
     // Send notification if message is from someone else
     if(pl.new.sender_id!==me.id){
@@ -1032,11 +1048,18 @@ async function initNotifications(){
   }
 }
 
-function sendNotification(title,body,icon){
+function sendNotification(title,body){
   if(Notification.permission!=='granted')return;
-  if(document.visibilityState==='visible')return; // Only notify when app is in background
-  const n=new Notification(title,{body,icon:icon||'/favicon.ico',badge:'/favicon.ico',tag:'liquidchat-msg',renotify:true});
-  n.onclick=()=>{window.focus();n.close();};
+  try{
+    const n=new Notification(title,{
+      body:body||'',
+      icon:'https://fav.farm/🫟',
+      tag:'lc-'+Date.now(),
+      renotify:true,
+      vibrate:[200,100,200]
+    });
+    n.onclick=()=>{window.focus();n.close();};
+  }catch(e){console.log('Notif error:',e);}
 }
 
 function toggleVO(){
