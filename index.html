@@ -1061,19 +1061,37 @@ async function initNotifications(){
   if(Notification.permission==='default'){
     await Notification.requestPermission();
   }
+  // Register service worker
+  if('serviceWorker' in navigator){
+    try{
+      await navigator.serviceWorker.register('/sw.js');
+    }catch(e){console.log('SW error:',e);}
+  }
 }
 
 function sendNotification(title,body){
   if(Notification.permission!=='granted')return;
   try{
-    const n=new Notification(title,{
-      body:body||'',
-      icon:'https://fav.farm/🫟',
-      tag:'lc-'+Date.now(),
-      renotify:true,
-      vibrate:[200,100,200]
-    });
-    n.onclick=()=>{window.focus();n.close();};
+    // Use service worker for better background support
+    if(navigator.serviceWorker?.controller){
+      navigator.serviceWorker.ready.then(reg=>{
+        reg.showNotification(title,{
+          body:body||'',
+          icon:'https://fav.farm/🫟',
+          tag:'lc-'+Date.now(),
+          renotify:true,
+          vibrate:[200,100,200]
+        });
+      });
+    } else {
+      const n=new Notification(title,{
+        body:body||'',
+        icon:'https://fav.farm/🫟',
+        tag:'lc-'+Date.now(),
+        renotify:true
+      });
+      n.onclick=()=>{window.focus();n.close();};
+    }
   }catch(e){console.log('Notif error:',e);}
 }
 
