@@ -285,7 +285,7 @@ textarea.ti2::placeholder{color:var(--t3);}
         <div class="iw">
           <textarea class="ti2" id="mta" placeholder="Write a message..." rows="1" onkeydown="hK(event)" oninput="aR(this)"></textarea>
           <label class="imgb" for="imgf">📎</label>
-          <input type="file" id="imgf" accept="image/*" onchange="sImg(this)">
+          <input type="file" id="imgf" accept="image/*" onchange="sImgVO(this)">
         <button class="imgb" id="vobtn" onclick="toggleVO()" title="View Once">👁</button>
         </div>
         <button class="sndb" onclick="sMsg()">➤</button>
@@ -362,7 +362,7 @@ textarea.ti2::placeholder{color:var(--t3);}
 <!-- MY PROFILE -->
 <div class="ov" id="mpmod">
   <div class="mod">
-    <h3>👤 My Profile</h3>
+    <h3>👤 My Profile <span id="my-vip-badge" class="vip" style="display:none;font-size:13px;">★ VIP</span></h3>
     <div style="text-align:center;margin-bottom:14px;">
       <div class="pav" id="mpav" style="margin-bottom:8px;"></div>
       <label style="background:var(--s2);border:1px dashed var(--ac);border-radius:9px;padding:8px 16px;color:var(--ac);font-size:12px;cursor:pointer;display:inline-block;" for="mpavf">📷 Change Photo</label>
@@ -683,6 +683,29 @@ async function sImg(inp){
   await lM(cc.id);loadC();
 }
 
+async function sImgVO(inp){
+  // If view once mode, mark image as view once
+  if(voMode){
+    const f=inp.files[0];if(!f||!cc)return;
+    const ext=f.name.split('.').pop();
+    const{data:ud,error}=await sb.storage.from('chat-images').upload(me.id+'/'+Date.now()+'.'+ext,f,{upsert:true});
+    if(error){alert('Upload failed: '+error.message);return;}
+    const{data:ul}=sb.storage.from('chat-images').getPublicUrl(ud.path);
+    const cap=document.getElementById('mta').value.trim();
+    await sb.from('lc_messages').insert({conversation_id:cc.id,sender_id:me.id,content:cap||'',message_type:'image',image_url:ul.publicUrl,view_once:true,viewed:false});
+    sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',cc.id);
+    document.getElementById('mta').value='';
+    inp.value='';
+    // Reset view once
+    voMode=false;
+    const btn=document.getElementById('vobtn');
+    btn.textContent='👁';btn.style.color='var(--t2)';
+    await lM(cc.id);loadC();
+  } else {
+    sImg(inp);
+  }
+}
+
 function hK(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sMsg();}}
 function aR(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
 
@@ -907,8 +930,10 @@ async function mFP(){if(!vu)return;sdmu=vu;cPV();await stDM();}
 function oMP(){
   if(!mp)return;
   const can=mp.is_vip||!mp.full_name;
-  const vipBtn=document.getElementById('vipbtn');
-  if(vipBtn)vipBtn.style.display=mp.is_vip?'none':'block';
+  const vipBadgeEl=document.getElementById('my-vip-badge');
+  if(vipBadgeEl)vipBadgeEl.style.display=mp.is_vip?'inline-flex':'none';
+  const vipBtnEl=document.getElementById('vipbtn');
+  if(vipBtnEl)vipBtnEl.style.display=mp.is_vip?'none':'block';
   document.getElementById('mpn').value=mp.full_name||'';
   document.getElementById('mpn').disabled=!can;
   document.getElementById('vnl').textContent=!can?'(VIP only)':'';
@@ -1052,7 +1077,10 @@ function testNotif(){
 
 function toggleVO(){
   voMode=!voMode;
-  document.getElementById('vobtn').style.color=voMode?'var(--ac)':'var(--t2)';
+  const btn=document.getElementById('vobtn');
+  btn.textContent=voMode?'🔒':'👁';
+  btn.style.color=voMode?'var(--ac)':'var(--t2)';
+  btn.title=voMode?'View Once ON - tap to disable':'View Once OFF - tap to enable';
 }
 
 // ── NOTIFICATIONS ──
@@ -1111,7 +1139,10 @@ function testNotif(){
 
 function toggleVO(){
   voMode=!voMode;
-  document.getElementById('vobtn').style.color=voMode?'var(--ac)':'var(--t2)';
+  const btn=document.getElementById('vobtn');
+  btn.textContent=voMode?'🔒':'👁';
+  btn.style.color=voMode?'var(--ac)':'var(--t2)';
+  btn.title=voMode?'View Once ON - tap to disable':'View Once OFF - tap to enable';
 }
 
 function toggleMsgMenu(mid){
