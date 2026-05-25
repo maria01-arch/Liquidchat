@@ -256,6 +256,7 @@ textarea.ti2::placeholder{color:var(--t3);}
       <div class="ami" id="ami"></div>
       <button class="amb" onclick="oMP()" style="background:var(--glow);color:var(--ac);">👤 My Profile</button>
       <button class="amb" onclick="doOut()" style="background:rgba(255,79,106,.1);color:var(--red);">Sign Out</button>
+      <button class="amb" onclick="testNotif()" style="background:var(--glow);color:var(--ac);">🔔 Test Notification</button>
     </div>
     <div class="cl" id="cl"><div class="ld"><span></span><span></span><span></span></div></div>
     <div class="sbf">
@@ -1035,6 +1036,20 @@ async function viewOnce(mid,el){
   await lM(cc.id);
 }
 
+function testNotif(){
+  if(Notification.permission==='granted'){
+    sendNotification('🫟 LiquidChat','Notifications are working!');
+    alert('Test notification sent!');
+  } else if(Notification.permission==='denied'){
+    alert('Notifications are blocked. Please enable them in your browser settings.');
+  } else {
+    Notification.requestPermission().then(p=>{
+      if(p==='granted') sendNotification('🫟 LiquidChat','Notifications are working!');
+      else alert('Permission denied.');
+    });
+  }
+}
+
 function toggleVO(){
   voMode=!voMode;
   document.getElementById('vobtn').style.color=voMode?'var(--ac)':'var(--t2)';
@@ -1060,6 +1075,20 @@ function sendNotification(title,body){
     });
     n.onclick=()=>{window.focus();n.close();};
   }catch(e){console.log('Notif error:',e);}
+}
+
+function testNotif(){
+  if(Notification.permission==='granted'){
+    sendNotification('🫟 LiquidChat','Notifications are working!');
+    alert('Test notification sent!');
+  } else if(Notification.permission==='denied'){
+    alert('Notifications are blocked. Please enable them in your browser settings.');
+  } else {
+    Notification.requestPermission().then(p=>{
+      if(p==='granted') sendNotification('🫟 LiquidChat','Notifications are working!');
+      else alert('Permission denied.');
+    });
+  }
 }
 
 function toggleVO(){
@@ -1109,6 +1138,20 @@ function tAM(){const m=document.getElementById('amenu');m.style.display=m.style.
 
 // ── MESSAGE ACTIONS ──
 let activeMenu=null;
+
+function testNotif(){
+  if(Notification.permission==='granted'){
+    sendNotification('🫟 LiquidChat','Notifications are working!');
+    alert('Test notification sent!');
+  } else if(Notification.permission==='denied'){
+    alert('Notifications are blocked. Please enable them in your browser settings.');
+  } else {
+    Notification.requestPermission().then(p=>{
+      if(p==='granted') sendNotification('🫟 LiquidChat','Notifications are working!');
+      else alert('Permission denied.');
+    });
+  }
+}
 
 function toggleVO(){
   voMode=!voMode;
