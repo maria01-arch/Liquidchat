@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 <title>LiquidChat 🫟</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#6c63ff">
@@ -90,7 +90,7 @@ input::placeholder{color:var(--t3);}
 .meid{font-size:10px;color:var(--ac);}
 
 /* CHAT MAIN */
-.cm{flex:1;display:none;flex-direction:column;background:var(--bg);height:100vh;}
+.cm{flex:1;display:none;flex-direction:column;background:var(--bg);height:100vh;height:100dvh;}
 .cm.show{display:flex;}
 .tbar{padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;background:var(--s1);flex-shrink:0;}
 .bk{width:32px;height:32px;border-radius:8px;background:var(--s2);border:1px solid var(--bd);color:var(--t2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;flex-shrink:0;}
@@ -129,7 +129,7 @@ input::placeholder{color:var(--t3);}
 #ctxmenu .divider{height:1px;background:var(--bd);margin:3px 0;}
 .mt{font-size:10px;color:var(--t3);margin-top:2px;}
 .mrow.me .mt{text-align:right;}
-.ibar{padding:10px 12px;border-top:1px solid var(--bd);background:var(--s1);display:flex;align-items:flex-end;gap:8px;flex-shrink:0;}
+.ibar{padding:10px 12px;border-top:1px solid var(--bd);background:var(--s1);display:flex;align-items:flex-end;gap:8px;flex-shrink:0;position:sticky;bottom:0;}
 .iw{flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:12px;display:flex;align-items:flex-end;}
 .iw:focus-within{border-color:var(--ac);}
 textarea.ti2{flex:1;background:none;border:none;padding:10px 12px;color:var(--tx);font-size:14px;outline:none;resize:none;max-height:120px;line-height:1.5;font-family:inherit;}
@@ -1078,7 +1078,7 @@ function testNotif(){
 function toggleVO(){
   voMode=!voMode;
   const btn=document.getElementById('vobtn');
-  btn.textContent=voMode?'🔒':'👁';
+  btn.innerHTML=voMode?'🔒':'👁';
   btn.style.color=voMode?'var(--ac)':'var(--t2)';
   btn.title=voMode?'View Once ON - tap to disable':'View Once OFF - tap to enable';
 }
@@ -1140,7 +1140,7 @@ function testNotif(){
 function toggleVO(){
   voMode=!voMode;
   const btn=document.getElementById('vobtn');
-  btn.textContent=voMode?'🔒':'👁';
+  btn.innerHTML=voMode?'🔒':'👁';
   btn.style.color=voMode?'var(--ac)':'var(--t2)';
   btn.title=voMode?'View Once ON - tap to disable':'View Once OFF - tap to enable';
 }
