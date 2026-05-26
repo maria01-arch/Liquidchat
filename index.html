@@ -282,11 +282,11 @@ textarea.ti2::placeholder{color:var(--t3);}
       </div>
       <div class="msgs" id="msgs"></div>
       <div class="ibar">
+        <button class="imgb" id="vobtn" onclick="toggleVO()" title="View Once OFF">👁</button>
         <div class="iw">
           <textarea class="ti2" id="mta" placeholder="Write a message..." rows="1" onkeydown="hK(event)" oninput="aR(this)"></textarea>
-          <label class="imgb" for="imgf">📎</label>
+          <label class="imgb" for="imgf" onclick="captureVOState()">📎</label>
           <input type="file" id="imgf" accept="image/*" onchange="sImgVO(this)">
-        <button class="imgb" id="vobtn" onclick="toggleVO()" title="View Once">👁</button>
         </div>
         <button class="sndb" onclick="sMsg()">➤</button>
       </div>
@@ -683,9 +683,12 @@ async function sImg(inp){
   await lM(cc.id);loadC();
 }
 
+let voOnClick=false;
+function captureVOState(){voOnClick=voMode;}
+
 async function sImgVO(inp){
   // If view once mode, mark image as view once
-  if(voMode){
+  if(voOnClick||voMode){
     const f=inp.files[0];if(!f||!cc)return;
     const ext=f.name.split('.').pop();
     const{data:ud,error}=await sb.storage.from('chat-images').upload(me.id+'/'+Date.now()+'.'+ext,f,{upsert:true});
@@ -697,9 +700,9 @@ async function sImgVO(inp){
     document.getElementById('mta').value='';
     inp.value='';
     // Reset view once
-    voMode=false;
+    voMode=false;voOnClick=false;
     const btn=document.getElementById('vobtn');
-    btn.textContent='👁';btn.style.color='var(--t2)';
+    btn.innerHTML='👁';btn.style.color='var(--t2)';btn.title='View Once OFF';
     await lM(cc.id);loadC();
   } else {
     sImg(inp);
