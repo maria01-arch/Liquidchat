@@ -282,7 +282,7 @@ textarea.ti2::placeholder{color:var(--t3);}
       </div>
       <div class="msgs" id="msgs"></div>
       <div class="ibar">
-        <button class="imgb" id="vobtn" onclick="toggleVO()" title="View Once OFF">👁</button>
+        <button id="vobtn" onclick="toggleVO()" style="padding:8px;background:none;border:1px solid var(--bd);border-radius:8px;color:var(--t2);font-size:18px;cursor:pointer;flex-shrink:0;line-height:1;" title="View Once OFF">👁</button>
         <div class="iw">
           <textarea class="ti2" id="mta" placeholder="Write a message..." rows="1" onkeydown="hK(event)" oninput="aR(this)"></textarea>
           <label class="imgb" for="imgf" onclick="captureVOState()">📎</label>
@@ -633,7 +633,7 @@ async function lM(cid){
     const bc=msg.message_type==='image'&&msg.image_url?'<img src="'+esc(msg.image_url)+'" onclick="oIV(this.src)">'+(msg.content?'<br>'+esc(msg.content):''):esc(msg.content||'');
     const vo=msg.view_once&&msg.sender_id!==me.id&&msg.viewed;
     const voUnread=msg.view_once&&msg.sender_id!==me.id&&!msg.viewed;
-    const bblContent=voUnread?'<div class="vo-overlay" onclick="viewOnce(\'' +msg.id+ '\',this)">👁 Tap to view once</div>'+bc:bc;
+    const bblContent=voUnread?'<span style="cursor:pointer" data-vid="'+msg.id+'" onclick="viewOnce(this.dataset.vid,this)">👁 Tap to view once</span>':bc;
     const editedTag=msg.is_edited?'<span style="font-size:9px;color:var(--t3);margin-left:4px;">(edited)</span>':'';
     const actId='act_'+msg.id;
     if(!mine){
@@ -1083,7 +1083,9 @@ function toggleVO(){
   const btn=document.getElementById('vobtn');
   btn.innerHTML=voMode?'🔒':'👁';
   btn.style.color=voMode?'var(--ac)':'var(--t2)';
-  btn.title=voMode?'View Once ON - tap to disable':'View Once OFF - tap to enable';
+  btn.style.borderColor=voMode?'var(--ac)':'var(--bd)';
+  btn.style.background=voMode?'var(--glow)':'none';
+  btn.title=voMode?'View Once ON':'View Once OFF';
 }
 
 // ── NOTIFICATIONS ──
@@ -1145,7 +1147,9 @@ function toggleVO(){
   const btn=document.getElementById('vobtn');
   btn.innerHTML=voMode?'🔒':'👁';
   btn.style.color=voMode?'var(--ac)':'var(--t2)';
-  btn.title=voMode?'View Once ON - tap to disable':'View Once OFF - tap to enable';
+  btn.style.borderColor=voMode?'var(--ac)':'var(--bd)';
+  btn.style.background=voMode?'var(--glow)':'none';
+  btn.title=voMode?'View Once ON':'View Once OFF';
 }
 
 function toggleMsgMenu(mid){
