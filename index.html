@@ -661,7 +661,12 @@ async function sMsg(){
   if(!ct||!cc)return;
   ta.value='';ta.style.height='auto';
   const msgData={conversation_id:cc.id,sender_id:me.id,content:ct,message_type:'text'};
-  if(voMode){msgData.view_once=true;msgData.viewed=false;voMode=false;document.getElementById('vobtn').style.color='var(--t2)';}
+  if(voMode){
+    msgData.view_once=true;msgData.viewed=false;
+    voMode=false;
+    const vb=document.getElementById('vobtn');
+    vb.innerHTML='👁';vb.style.color='var(--t2)';vb.style.borderColor='var(--bd)';vb.style.background='none';
+  }
   const{error}=await sb.from('lc_messages').insert(msgData);
   if(error){alert('Failed: '+error.message);ta.value=ct;return;}
   sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',cc.id);
@@ -1344,4 +1349,3 @@ sb.auth.onAuthStateChange(async(ev,sess)=>{
 </script>
 </body>
 </html>
-Wed Jun  3 13:15:10 WAT 2026
