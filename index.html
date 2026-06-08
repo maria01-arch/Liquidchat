@@ -537,6 +537,8 @@ async function loadC(){
       });
     }
   }
+  // Sort by most recent
+  cvs.sort((a,b)=>new Date(b.updated_at||b.created_at)-new Date(a.updated_at||a.created_at));
   rC(cvs);
   // Second pass - reload any convs that still show Unknown
   const unknownConvs=cvs.filter(c=>c.type==='direct'&&!c._o);
@@ -662,14 +664,15 @@ async function sMsg(){
   ta.value='';ta.style.height='auto';
   const msgData={conversation_id:cc.id,sender_id:me.id,content:ct,message_type:'text'};
   if(voMode){
-    msgData.view_once=true;msgData.viewed=false;
+    try{msgData.view_once=true;msgData.viewed=false;}catch(e){}
     voMode=false;
     const vb=document.getElementById('vobtn');
-    vb.innerHTML='👁';vb.style.color='var(--t2)';vb.style.borderColor='var(--bd)';vb.style.background='none';
+    if(vb){vb.innerHTML='👁';vb.style.color='var(--t2)';vb.style.borderColor='var(--bd)';vb.style.background='none';}
   }
   const{error}=await sb.from('lc_messages').insert(msgData);
   if(error){alert('Failed: '+error.message);ta.value=ct;return;}
-  sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',cc.id);
+  await sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',cc.id);
+  if(cc){cc.updated_at=new Date().toISOString();cvs=cvs.filter(c=>c.id!==cc.id);cvs.unshift(cc);rC(cvs);}
   await lM(cc.id);
   loadC();
 }
