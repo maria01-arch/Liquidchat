@@ -589,16 +589,11 @@ function ft(d){const now=new Date(),dt=new Date(d),df=now-dt;if(df<86400000)retu
 
 // AUTH TABS
 function stab(t){
-document.getElementById('men').textContent=nm(prof)||user.email;
-  document.getElementById('mei').textContent=prof?.liquid_id||'';
-  const drav=document.getElementById('drav');
-  if(prof?.avatar_url){drav.innerHTML='<img src="'+esc(prof.avatar_url)+'">';drav.style.background='transparent';}
-  else{drav.style.background=prof?.avatar_color||'#6c63ff';drav.textContent=(nm(prof)||'??').slice(0,2).toUpperCase();}
-  document.getElementById('drn').textContent=nm(prof)||user.email;
-  document.getElementById('drid').textContent=prof?.liquid_id||'';
-  document.getElementById('drem').textContent=user.email;
+  document.getElementById('lf').style.display=t==='l'?'block':'none';
+  document.getElementById('sf').style.display=t==='s'?'block':'none';
+  document.querySelectorAll('.tab').forEach((e,i)=>e.classList.toggle('on',(t==='l'&&i===0)||(t==='s'&&i===1)));
+  document.getElementById('aerr').style.display='none';
 }
-
 // SIGNUP
 async function doS(){
   const err=document.getElementById('aerr');
@@ -650,8 +645,12 @@ async function initApp(user){
   else{mav.style.background=prof?.avatar_color||'#6c63ff';mav.textContent=(nm(prof)||'??').slice(0,2).toUpperCase();}
   document.getElementById('men').textContent=nm(prof)||user.email;
   document.getElementById('mei').textContent=prof?.liquid_id||'';
-  document.getElementById('ame').textContent=user.email;
-  document.getElementById('ami').textContent='ID: '+(prof?.liquid_id||'');
+  const drav=document.getElementById('drav');
+  if(prof?.avatar_url){drav.innerHTML='<img src="'+esc(prof.avatar_url)+'">';drav.style.background='transparent';}
+  else{drav.style.background=prof?.avatar_color||'#6c63ff';drav.textContent=(nm(prof)||'??').slice(0,2).toUpperCase();}
+  document.getElementById('drn').textContent=nm(prof)||user.email;
+  document.getElementById('drid').textContent=prof?.liquid_id||'';
+  document.getElementById('drem').textContent=user.email;
   await loadC();
   subRT();
   await hIL();
