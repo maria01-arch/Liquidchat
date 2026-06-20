@@ -54,6 +54,49 @@ input::placeholder{color:var(--t3);}
 #app{display:none;height:100vh;flex-direction:row;}
 #app.show{display:flex;}
 
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;height:56px;background:var(--s1);border-top:1px solid var(--bd);display:none;align-items:center;justify-content:space-around;z-index:50;padding-bottom:env(safe-area-inset-bottom);}
+#app.show~.bnav, .bnav.show{display:flex;}
+.bnt{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 14px;border:none;background:none;color:var(--t2);font-size:10px;cursor:pointer;border-radius:10px;transition:color .2s;}
+.bnt.on{color:var(--ac);}
+.bnt .bni{font-size:20px;line-height:1;}
+.bnt .bnl{font-size:9px;font-weight:600;letter-spacing:.03em;}
+
+/* SIDE DRAWER */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;backdrop-filter:blur(3px);}
+.drawer-overlay.show{display:block;}
+.drawer{position:fixed;left:0;top:0;bottom:0;width:280px;background:var(--s1);z-index:201;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;border-right:1px solid var(--bd);}
+.drawer.show{transform:translateX(0);}
+.drh{padding:20px 16px 14px;border-bottom:1px solid var(--bd);}
+.dru{display:flex;align-items:center;gap:11px;margin-bottom:4px;}
+.drav{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;overflow:hidden;flex-shrink:0;}
+.drav img{width:100%;height:100%;object-fit:cover;}
+.drn{font-size:15px;font-weight:700;}
+.drid{font-size:11px;color:var(--ac);margin-top:1px;}
+.drem{font-size:11px;color:var(--t3);margin-top:8px;}
+.drl{flex:1;overflow-y:auto;padding:10px 8px;}
+.dri{display:flex;align-items:center;gap:12px;padding:12px 10px;border-radius:10px;cursor:pointer;color:var(--tx);border:none;background:none;width:100%;font-family:inherit;font-size:14px;font-weight:500;}
+.dri:hover{background:var(--s2);}
+.dri .dric{font-size:20px;width:28px;text-align:center;}
+.dri.red{color:var(--red);}
+.drdiv{height:1px;background:var(--bd);margin:6px 10px;}
+.drf{padding:12px 16px;border-top:1px solid var(--bd);font-size:10px;color:var(--t3);text-align:center;}
+
+/* PAGE PANELS */
+.page{display:none;position:fixed;inset:0;background:var(--bg);z-index:10;flex-direction:column;}
+.page.show{display:flex;}
+.pgh{padding:14px 16px;border-bottom:1px solid var(--bd);background:var(--s1);display:flex;align-items:center;gap:10px;}
+.pgh h2{font-size:17px;font-weight:800;flex:1;}
+.pgb{flex:1;overflow-y:auto;padding:16px;}
+.coming{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:var(--t3);gap:10px;}
+.coming .ci2{font-size:52px;opacity:.4;}
+.coming h3{font-size:17px;font-weight:700;color:var(--t2);}
+.coming p{font-size:12px;text-align:center;max-width:220px;line-height:1.6;}
+
+/* ADJUST APP FOR BOTTOM NAV */
+#app.show{padding-bottom:56px;}
+.sb{height:calc(100vh - 56px);}
+.cm{height:calc(100vh - 56px);height:calc(100dvh - 56px);}
 /* SIDEBAR */
 .sb{width:100%;background:var(--s1);border-right:1px solid var(--bd);display:flex;flex-direction:column;height:100vh;}
 .sbh{padding:14px;border-bottom:1px solid var(--bd);}
@@ -251,17 +294,121 @@ textarea.ti2::placeholder{color:var(--t3);}
       </div>
       <div class="srch"><span class="si">🔍</span><input type="text" placeholder="Search chats..." oninput="fC(this.value)"></div>
     </div>
-    <div id="amenu">
-      <div class="ame" id="ame"></div>
-      <div class="ami" id="ami"></div>
-      <button class="amb" onclick="oMP()" style="background:var(--glow);color:var(--ac);">👤 My Profile</button>
-      <button class="amb" onclick="doOut()" style="background:rgba(255,79,106,.1);color:var(--red);">Sign Out</button>
-      <button class="amb" onclick="testNotif()" style="background:var(--glow);color:var(--ac);">🔔 Test Notification</button>
-    </div>
-    <div class="cl" id="cl"><div class="ld"><span></span><span></span><span></span></div></div>
+<div class="cl" id="cl"><div class="ld"><span></span><span></span><span></span></div></div>
     <div class="sbf">
-      <div class="meav" id="meav" onclick="oMP()"></div>
+      <div class="meav" id="meav" onclick="openDrawer()"></div>
       <div style="flex:1;min-width:0;"><div class="men" id="men"></div><div class="meid" id="mei"></div></div>
+      <div class="hb" onclick="openDrawer()">☰</div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bnav show">
+    <button class="bnt on" id="bnt-msg" onclick="showPage('msg')"><span class="bni">💬</span><span class="bnl">Messages</span></button>
+    <button class="bnt" id="bnt-p2p" onclick="showPage('p2p')"><span class="bni">🔄</span><span class="bnl">P2P</span></button>
+    <button class="bnt" id="bnt-media" onclick="showPage('media')"><span class="bni">🎬</span><span class="bnl">Media</span></button>
+    <button class="bnt" id="bnt-sub" onclick="showPage('sub')"><span class="bni">⭐</span><span class="bnl">Subscribed</span></button>
+    <button class="bnt" id="bnt-wallet" onclick="showPage('wallet')"><span class="bni">👛</span><span class="bnl">Wallet</span></button>
+  </nav>
+
+  <!-- SIDE DRAWER -->
+  <div class="drawer-overlay" id="drawerOv" onclick="closeDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <div class="drh">
+      <div class="dru">
+        <div class="drav" id="drav"></div>
+        <div>
+          <div class="drn" id="drn">Loading...</div>
+          <div class="drid" id="drid"></div>
+        </div>
+      </div>
+      <div class="drem" id="drem"></div>
+    </div>
+    <div class="drl">
+      <button class="dri" onclick="closeDrawer();oMP()"><span class="dric">👤</span>Profile</button>
+      <button class="dri" onclick="closeDrawer();oSettings('security')"><span class="dric">🔒</span>Security</button>
+      <button class="dri" onclick="closeDrawer();oSettings('creator')"><span class="dric">🎨</span>Apply for Creator</button>
+      <button class="dri" onclick="closeDrawer();oSettings('help')"><span class="dric">❓</span>Help</button>
+      <button class="dri" onclick="testNotif()"><span class="dric">🔔</span>Test Notification</button>
+      <div class="drdiv"></div>
+      <button class="dri red" onclick="closeDrawer();doOut()"><span class="dric">🚪</span>Sign Out</button>
+    </div>
+    <div class="drf">LiquidChat · by OmniSphere Labs</div>
+  </div>
+
+  <!-- P2P PAGE -->
+  <div class="page" id="page-p2p">
+    <div class="pgh"><h2>🔄 P2P Market</h2></div>
+    <div class="coming"><div class="ci2">🔄</div><h3>Coming Soon</h3><p>Peer-to-peer crypto trading with escrow protection. Stay tuned!</p></div>
+  </div>
+
+  <!-- MEDIA PAGE -->
+  <div class="page" id="page-media">
+    <div class="pgh"><h2>🎬 Media</h2></div>
+    <div class="coming"><div class="ci2">🎬</div><h3>Coming Soon</h3><p>Locked content feed. Pay to view or subscribe to creators.</p></div>
+  </div>
+
+  <!-- SUBSCRIBED PAGE -->
+  <div class="page" id="page-sub">
+    <div class="pgh"><h2>⭐ Subscribed</h2></div>
+    <div class="coming"><div class="ci2">⭐</div><h3>Coming Soon</h3><p>See all creators you subscribe to in one place.</p></div>
+  </div>
+
+  <!-- WALLET PAGE -->
+  <div class="page" id="page-wallet">
+    <div class="pgh"><h2>👛 Wallet</h2></div>
+    <div class="coming"><div class="ci2">👛</div><h3>Coming Soon</h3><p>Deposit, withdraw and manage your funds easily.</p></div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div class="pgh">
+      <div class="bk" onclick="closePage('settings')">←</div>
+      <h2 id="settings-title">Settings</h2>
+    </div>
+    <div class="pgb">
+      <!-- Security -->
+      <div id="set-security" style="display:none">
+        <div class="lbl">Current Password</div><input type="password" id="sec-old" placeholder="Current password">
+        <div class="lbl">New Password</div><input type="password" id="sec-new" placeholder="New password (min 6 chars)">
+        <div class="lbl">Confirm New Password</div><input type="password" id="sec-con" placeholder="Confirm new password">
+        <button class="abtn" onclick="changePass()" style="margin-top:8px;">Update Password</button>
+      </div>
+      <!-- Creator Apply -->
+      <div id="set-creator" style="display:none">
+        <div style="background:linear-gradient(135deg,var(--ac),var(--ac2));border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:6px;">🎨</div>
+          <div style="font-weight:800;font-size:16px;color:#fff;">Become a Creator</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:4px;">Monetize your content on LiquidChat</div>
+        </div>
+        <div class="lbl">Full Name</div><input type="text" id="cr-name" placeholder="Your real name">
+        <div class="lbl">What will you create?</div>
+        <select id="cr-type"><option value="">Select content type...</option><option>Photos & Videos</option><option>Tutorials</option><option>Music</option><option>Art & Design</option><option>Other</option></select>
+        <div class="lbl">Tell us about yourself</div>
+        <input type="text" id="cr-bio" placeholder="Short bio...">
+        <button class="abtn" onclick="submitCreator()" style="margin-top:8px;">Submit Application</button>
+      </div>
+      <!-- Help -->
+      <div id="set-help" style="display:none">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="background:var(--s2);border-radius:12px;padding:14px;">
+            <div style="font-weight:700;margin-bottom:4px;">💬 How do I send a DM?</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.6;">Tap the ✉️ icon in the Messages tab, search by name or LC-ID, and tap Open Chat.</div>
+          </div>
+          <div style="background:var(--s2);border-radius:12px;padding:14px;">
+            <div style="font-weight:700;margin-bottom:4px;">👥 How do I create a group?</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.6;">VIP users can tap 👥 in the Messages tab to create a group chat.</div>
+          </div>
+          <div style="background:var(--s2);border-radius:12px;padding:14px;">
+            <div style="font-weight:700;margin-bottom:4px;">⭐ What is VIP?</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.6;">VIP unlocks group creation, name changes, and a gold badge. Tap your profile to upgrade.</div>
+          </div>
+          <div style="background:var(--s2);border-radius:12px;padding:14px;">
+            <div style="font-weight:700;margin-bottom:4px;">📧 Contact Support</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.6;">Email us at support@liquidchats.vercel.app or DM @admin on LiquidChat.</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -442,10 +589,14 @@ function ft(d){const now=new Date(),dt=new Date(d),df=now-dt;if(df<86400000)retu
 
 // AUTH TABS
 function stab(t){
-  document.getElementById('lf').style.display=t==='l'?'block':'none';
-  document.getElementById('sf').style.display=t==='s'?'block':'none';
-  document.querySelectorAll('.tab').forEach((e,i)=>e.classList.toggle('on',(t==='l'&&i===0)||(t==='s'&&i===1)));
-  document.getElementById('aerr').style.display='none';
+document.getElementById('men').textContent=nm(prof)||user.email;
+  document.getElementById('mei').textContent=prof?.liquid_id||'';
+  const drav=document.getElementById('drav');
+  if(prof?.avatar_url){drav.innerHTML='<img src="'+esc(prof.avatar_url)+'">';drav.style.background='transparent';}
+  else{drav.style.background=prof?.avatar_color||'#6c63ff';drav.textContent=(nm(prof)||'??').slice(0,2).toUpperCase();}
+  document.getElementById('drn').textContent=nm(prof)||user.email;
+  document.getElementById('drid').textContent=prof?.liquid_id||'';
+  document.getElementById('drem').textContent=user.email;
 }
 
 // SIGNUP
@@ -1317,10 +1468,17 @@ window.addEventListener('popstate', function(e){
       return;
     }
   }
-  // If account menu open - close it
-  const am=document.getElementById('amenu');
-  if(am&&am.style.display==='flex'){
-    am.style.display='none';
+// If drawer open - close it
+  const dr=document.getElementById('drawer');
+  if(dr&&dr.classList.contains('show')){
+    closeDrawer();
+    history.pushState(null,'',window.location.href);
+    return;
+  }
+  // If settings page open - close it
+  const sp=document.getElementById('page-settings');
+  if(sp&&sp.classList.contains('show')){
+    closePage('settings');
     history.pushState(null,'',window.location.href);
     return;
   }
@@ -1330,7 +1488,74 @@ window.addEventListener('popstate', function(e){
     history.pushState(null,'',window.location.href);
   }
 });
+// ── NAVIGATION ──
+function openDrawer(){
+  document.getElementById('drawer').classList.add('show');
+  document.getElementById('drawerOv').classList.add('show');
+  history.pushState(null,'',window.location.href);
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('show');
+  document.getElementById('drawerOv').classList.remove('show');
+}
 
+function showPage(name){
+  document.getElementById('app').classList.toggle('show',name==='msg');
+  ['p2p','media','sub','wallet'].forEach(p=>{
+    document.getElementById('page-'+p).classList.toggle('show',p===name);
+  });
+  document.getElementById('page-settings').classList.remove('show');
+  document.querySelectorAll('.bnt').forEach(b=>b.classList.remove('on'));
+  const btn=document.getElementById('bnt-'+name);
+  if(btn)btn.classList.add('on');
+}
+
+function closePage(name){
+  document.getElementById('page-'+name).classList.remove('show');
+  showPage('msg');
+}
+
+function oSettings(section){
+  document.querySelectorAll('#page-settings [id^="set-"]').forEach(d=>d.style.display='none');
+  const el=document.getElementById('set-'+section);
+  if(el)el.style.display='block';
+  const titles={security:'🔒 Security',creator:'🎨 Apply for Creator',help:'❓ Help'};
+  document.getElementById('settings-title').textContent=titles[section]||'Settings';
+  document.getElementById('app').classList.remove('show');
+  ['p2p','media','sub','wallet'].forEach(p=>document.getElementById('page-'+p).classList.remove('show'));
+  document.getElementById('page-settings').classList.add('show');
+  document.querySelectorAll('.bnt').forEach(b=>b.classList.remove('on'));
+  history.pushState(null,'',window.location.href);
+}
+
+async function changePass(){
+  const oldP=document.getElementById('sec-old').value;
+  const newP=document.getElementById('sec-new').value;
+  const conP=document.getElementById('sec-con').value;
+  if(!oldP||!newP||!conP){alert('Please fill all fields.');return;}
+  if(newP.length<6){alert('New password must be at least 6 characters.');return;}
+  if(newP!==conP){alert('Passwords do not match.');return;}
+  const{error:authErr}=await sb.auth.signInWithPassword({email:me.email,password:oldP});
+  if(authErr){alert('Current password is incorrect.');return;}
+  const{error}=await sb.auth.updateUser({password:newP});
+  if(error){alert('Error: '+error.message);return;}
+  alert('✅ Password updated successfully!');
+  ['sec-old','sec-new','sec-con'].forEach(id=>document.getElementById(id).value='');
+}
+
+async function submitCreator(){
+  const name=document.getElementById('cr-name').value.trim();
+  const type=document.getElementById('cr-type').value;
+  const bio=document.getElementById('cr-bio').value.trim();
+  if(!name||!type){alert('Please fill in your name and content type.');return;}
+  try{
+    await sb.from('profiles').update({bio:(mp?.bio||'')+' [CREATOR-APPLY: '+type+' - '+bio+']'}).eq('id',me.id);
+  }catch(e){}
+  alert('✅ Application submitted! We will review and get back to you within 48 hours.');
+  document.getElementById('cr-name').value='';
+  document.getElementById('cr-bio').value='';
+  document.getElementById('cr-type').value='';
+}
 // SESSION CHECK
 (async()=>{
   const path=window.location.pathname;
