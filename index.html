@@ -220,24 +220,16 @@ textarea.ti2::placeholder{color:var(--t3);}
 
 /* MOBILE */
 @media(max-width:660px){
-  .sb{position:fixed;top:0;left:0;right:0;z-index:1;}
-  .cm{position:fixed;top:0;left:0;right:0;z-index:2;display:none;background:var(--bg);}
+  .sb{position:fixed;top:0;left:0;right:0;bottom:58px;height:auto;z-index:1;}
+  .cm{position:fixed;top:0;left:0;right:0;bottom:0;height:auto;z-index:2;display:none;background:var(--bg);}
   .cm.show{display:flex;}
   .bk{display:flex;}
 }
 /* DESKTOP */
 @media(min-width:661px){
-  .sb{width:290px;min-width:290px;position:relative;}
-  .cm{display:flex;position:relative;}
+  .sb{width:290px;min-width:290px;position:relative;height:calc(100vh - 58px);}
+  .cm{display:flex;position:relative;height:calc(100vh - 58px);height:calc(100dvh - 58px);}
   .bk{display:none;}
-}
-
-/* ADJUST APP FOR BOTTOM NAV — kept last so it wins the cascade */
-#app.show{padding-bottom:58px;}
-#app.show .sb{height:calc(100vh - 58px)!important;}
-#app.show .cm{height:calc(100vh - 58px)!important;height:calc(100dvh - 58px)!important;}
-@media(max-width:660px){
-  #app.show .cm.show{height:100vh!important;height:100dvh!important;}
 }
 </style>
 </head>
