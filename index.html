@@ -55,12 +55,12 @@ input::placeholder{color:var(--t3);}
 #app.show{display:flex;}
 
 /* BOTTOM NAV */
-.bnav{position:fixed;bottom:0;left:0;right:0;height:56px;background:var(--s1);border-top:1px solid var(--bd);display:none;align-items:center;justify-content:space-around;z-index:50;padding-bottom:env(safe-area-inset-bottom);}
-#app.show~.bnav, .bnav.show{display:flex;}
-.bnt{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 14px;border:none;background:none;color:var(--t2);font-size:10px;cursor:pointer;border-radius:10px;transition:color .2s;}
+.bnav{position:fixed;bottom:0;left:0;right:0;height:58px;background:var(--s1);border-top:1px solid var(--bd);display:none;align-items:center;justify-content:space-around;z-index:50;padding-bottom:env(safe-area-inset-bottom);}
+.bnav.show{display:flex;}
+.bnt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px 12px;border:none;background:none;color:var(--t2);font-size:10px;cursor:pointer;border-radius:10px;transition:color .2s;}
 .bnt.on{color:var(--ac);}
-.bnt .bni{font-size:20px;line-height:1;}
-.bnt .bnl{font-size:9px;font-weight:600;letter-spacing:.03em;}
+.bnt svg{width:21px;height:21px;}
+.bnt .bnl{font-size:9px;font-weight:600;letter-spacing:.02em;}
 
 /* SIDE DRAWER */
 .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;backdrop-filter:blur(3px);}
@@ -85,18 +85,19 @@ input::placeholder{color:var(--t3);}
 /* PAGE PANELS */
 .page{display:none;position:fixed;inset:0;background:var(--bg);z-index:10;flex-direction:column;}
 .page.show{display:flex;}
-.pgh{padding:14px 16px;border-bottom:1px solid var(--bd);background:var(--s1);display:flex;align-items:center;gap:10px;}
+.pgh{padding:14px 16px;border-bottom:1px solid var(--bd);background:var(--s1);display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .pgh h2{font-size:17px;font-weight:800;flex:1;}
-.pgb{flex:1;overflow-y:auto;padding:16px;}
-.coming{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:var(--t3);gap:10px;}
+.pgb{flex:1;overflow-y:auto;padding:16px;padding-bottom:74px;}
+.coming{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:var(--t3);gap:10px;padding-bottom:58px;}
 .coming .ci2{font-size:52px;opacity:.4;}
 .coming h3{font-size:17px;font-weight:700;color:var(--t2);}
 .coming p{font-size:12px;text-align:center;max-width:220px;line-height:1.6;}
 
 /* ADJUST APP FOR BOTTOM NAV */
-#app.show{padding-bottom:56px;}
-.sb{height:calc(100vh - 56px);}
-.cm{height:calc(100vh - 56px);height:calc(100dvh - 56px);}
+#app.show{padding-bottom:58px;}
+.sb{height:calc(100vh - 58px);}
+.cm{height:calc(100vh - 58px);height:calc(100dvh - 58px);}
+
 /* SIDEBAR */
 .sb{width:100%;background:var(--s1);border-right:1px solid var(--bd);display:flex;flex-direction:column;height:100vh;}
 .sbh{padding:14px;border-bottom:1px solid var(--bd);}
@@ -109,10 +110,6 @@ input::placeholder{color:var(--t3);}
 .srch{position:relative;}
 .srch input{padding:9px 12px 9px 32px;margin:0;font-size:13px;}
 .srch .si{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:13px;pointer-events:none;}
-#amenu{display:none;flex-direction:column;gap:5px;padding:10px 13px;background:var(--s2);border-bottom:1px solid var(--bd);}
-.ame{font-size:11px;color:var(--t3);}
-.ami{font-size:12px;color:var(--ac);font-weight:600;margin-bottom:3px;}
-.amb{padding:8px 11px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;text-align:left;font-family:inherit;}
 .cl{flex:1;overflow-y:auto;}
 .ci{display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer;border-left:3px solid transparent;}
 .ci:hover{background:var(--s2);}
@@ -289,126 +286,15 @@ textarea.ti2::placeholder{color:var(--t3);}
           <div class="hb" onclick="oDM()" title="New Message">✉️</div>
           <div class="hb" onclick="oGM()" title="New Group">👥</div>
           <div class="hb" onclick="oSG()" title="Find Group">🔍</div>
-          <div class="hb" onclick="tAM()" title="Account">👤</div>
         </div>
       </div>
       <div class="srch"><span class="si">🔍</span><input type="text" placeholder="Search chats..." oninput="fC(this.value)"></div>
     </div>
-<div class="cl" id="cl"><div class="ld"><span></span><span></span><span></span></div></div>
+    <div class="cl" id="cl"><div class="ld"><span></span><span></span><span></span></div></div>
     <div class="sbf">
       <div class="meav" id="meav" onclick="openDrawer()"></div>
       <div style="flex:1;min-width:0;"><div class="men" id="men"></div><div class="meid" id="mei"></div></div>
       <div class="hb" onclick="openDrawer()">☰</div>
-    </div>
-  </div>
-
-  <!-- BOTTOM NAV -->
-  <nav class="bnav show">
-    <button class="bnt on" id="bnt-msg" onclick="showPage('msg')"><span class="bni">💬</span><span class="bnl">Messages</span></button>
-    <button class="bnt" id="bnt-p2p" onclick="showPage('p2p')"><span class="bni">🔄</span><span class="bnl">P2P</span></button>
-    <button class="bnt" id="bnt-media" onclick="showPage('media')"><span class="bni">🎬</span><span class="bnl">Media</span></button>
-    <button class="bnt" id="bnt-sub" onclick="showPage('sub')"><span class="bni">⭐</span><span class="bnl">Subscribed</span></button>
-    <button class="bnt" id="bnt-wallet" onclick="showPage('wallet')"><span class="bni">👛</span><span class="bnl">Wallet</span></button>
-  </nav>
-
-  <!-- SIDE DRAWER -->
-  <div class="drawer-overlay" id="drawerOv" onclick="closeDrawer()"></div>
-  <div class="drawer" id="drawer">
-    <div class="drh">
-      <div class="dru">
-        <div class="drav" id="drav"></div>
-        <div>
-          <div class="drn" id="drn">Loading...</div>
-          <div class="drid" id="drid"></div>
-        </div>
-      </div>
-      <div class="drem" id="drem"></div>
-    </div>
-    <div class="drl">
-      <button class="dri" onclick="closeDrawer();oMP()"><span class="dric">👤</span>Profile</button>
-      <button class="dri" onclick="closeDrawer();oSettings('security')"><span class="dric">🔒</span>Security</button>
-      <button class="dri" onclick="closeDrawer();oSettings('creator')"><span class="dric">🎨</span>Apply for Creator</button>
-      <button class="dri" onclick="closeDrawer();oSettings('help')"><span class="dric">❓</span>Help</button>
-      <button class="dri" onclick="testNotif()"><span class="dric">🔔</span>Test Notification</button>
-      <div class="drdiv"></div>
-      <button class="dri red" onclick="closeDrawer();doOut()"><span class="dric">🚪</span>Sign Out</button>
-    </div>
-    <div class="drf">LiquidChat · by OmniSphere Labs</div>
-  </div>
-
-  <!-- P2P PAGE -->
-  <div class="page" id="page-p2p">
-    <div class="pgh"><h2>🔄 P2P Market</h2></div>
-    <div class="coming"><div class="ci2">🔄</div><h3>Coming Soon</h3><p>Peer-to-peer crypto trading with escrow protection. Stay tuned!</p></div>
-  </div>
-
-  <!-- MEDIA PAGE -->
-  <div class="page" id="page-media">
-    <div class="pgh"><h2>🎬 Media</h2></div>
-    <div class="coming"><div class="ci2">🎬</div><h3>Coming Soon</h3><p>Locked content feed. Pay to view or subscribe to creators.</p></div>
-  </div>
-
-  <!-- SUBSCRIBED PAGE -->
-  <div class="page" id="page-sub">
-    <div class="pgh"><h2>⭐ Subscribed</h2></div>
-    <div class="coming"><div class="ci2">⭐</div><h3>Coming Soon</h3><p>See all creators you subscribe to in one place.</p></div>
-  </div>
-
-  <!-- WALLET PAGE -->
-  <div class="page" id="page-wallet">
-    <div class="pgh"><h2>👛 Wallet</h2></div>
-    <div class="coming"><div class="ci2">👛</div><h3>Coming Soon</h3><p>Deposit, withdraw and manage your funds easily.</p></div>
-  </div>
-
-  <!-- SETTINGS PAGE -->
-  <div class="page" id="page-settings">
-    <div class="pgh">
-      <div class="bk" onclick="closePage('settings')">←</div>
-      <h2 id="settings-title">Settings</h2>
-    </div>
-    <div class="pgb">
-      <!-- Security -->
-      <div id="set-security" style="display:none">
-        <div class="lbl">Current Password</div><input type="password" id="sec-old" placeholder="Current password">
-        <div class="lbl">New Password</div><input type="password" id="sec-new" placeholder="New password (min 6 chars)">
-        <div class="lbl">Confirm New Password</div><input type="password" id="sec-con" placeholder="Confirm new password">
-        <button class="abtn" onclick="changePass()" style="margin-top:8px;">Update Password</button>
-      </div>
-      <!-- Creator Apply -->
-      <div id="set-creator" style="display:none">
-        <div style="background:linear-gradient(135deg,var(--ac),var(--ac2));border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;">
-          <div style="font-size:32px;margin-bottom:6px;">🎨</div>
-          <div style="font-weight:800;font-size:16px;color:#fff;">Become a Creator</div>
-          <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:4px;">Monetize your content on LiquidChat</div>
-        </div>
-        <div class="lbl">Full Name</div><input type="text" id="cr-name" placeholder="Your real name">
-        <div class="lbl">What will you create?</div>
-        <select id="cr-type"><option value="">Select content type...</option><option>Photos & Videos</option><option>Tutorials</option><option>Music</option><option>Art & Design</option><option>Other</option></select>
-        <div class="lbl">Tell us about yourself</div>
-        <input type="text" id="cr-bio" placeholder="Short bio...">
-        <button class="abtn" onclick="submitCreator()" style="margin-top:8px;">Submit Application</button>
-      </div>
-      <!-- Help -->
-      <div id="set-help" style="display:none">
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div style="background:var(--s2);border-radius:12px;padding:14px;">
-            <div style="font-weight:700;margin-bottom:4px;">💬 How do I send a DM?</div>
-            <div style="font-size:13px;color:var(--t2);line-height:1.6;">Tap the ✉️ icon in the Messages tab, search by name or LC-ID, and tap Open Chat.</div>
-          </div>
-          <div style="background:var(--s2);border-radius:12px;padding:14px;">
-            <div style="font-weight:700;margin-bottom:4px;">👥 How do I create a group?</div>
-            <div style="font-size:13px;color:var(--t2);line-height:1.6;">VIP users can tap 👥 in the Messages tab to create a group chat.</div>
-          </div>
-          <div style="background:var(--s2);border-radius:12px;padding:14px;">
-            <div style="font-weight:700;margin-bottom:4px;">⭐ What is VIP?</div>
-            <div style="font-size:13px;color:var(--t2);line-height:1.6;">VIP unlocks group creation, name changes, and a gold badge. Tap your profile to upgrade.</div>
-          </div>
-          <div style="background:var(--s2);border-radius:12px;padding:14px;">
-            <div style="font-weight:700;margin-bottom:4px;">📧 Contact Support</div>
-            <div style="font-size:13px;color:var(--t2);line-height:1.6;">Email us at support@liquidchats.vercel.app or DM @admin on LiquidChat.</div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -436,6 +322,131 @@ textarea.ti2::placeholder{color:var(--t3);}
           <input type="file" id="imgf" accept="image/*" onchange="sImgVO(this)">
         </div>
         <button class="sndb" onclick="sMsg()">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bnav show">
+  <button class="bnt on" id="bnt-msg" onclick="showPage('msg')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+    <span class="bnl">Messages</span>
+  </button>
+  <button class="bnt" id="bnt-p2p" onclick="showPage('p2p')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+    <span class="bnl">P2P</span>
+  </button>
+  <button class="bnt" id="bnt-media" onclick="showPage('media')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+    <span class="bnl">Media</span>
+  </button>
+  <button class="bnt" id="bnt-sub" onclick="showPage('sub')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+    <span class="bnl">Subscribed</span>
+  </button>
+  <button class="bnt" id="bnt-wallet" onclick="showPage('wallet')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg>
+    <span class="bnl">Wallet</span>
+  </button>
+</nav>
+
+<!-- SIDE DRAWER -->
+<div class="drawer-overlay" id="drawerOv" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drh">
+    <div class="dru">
+      <div class="drav" id="drav"></div>
+      <div>
+        <div class="drn" id="drn">Loading...</div>
+        <div class="drid" id="drid"></div>
+      </div>
+    </div>
+    <div class="drem" id="drem"></div>
+  </div>
+  <div class="drl">
+    <button class="dri" onclick="closeDrawer();oMP()"><span class="dric">👤</span>Profile</button>
+    <button class="dri" onclick="closeDrawer();oSettings('security')"><span class="dric">🔒</span>Security</button>
+    <button class="dri" onclick="closeDrawer();oSettings('creator')"><span class="dric">🎨</span>Apply for Creator</button>
+    <button class="dri" onclick="closeDrawer();oSettings('help')"><span class="dric">❓</span>Help</button>
+    <button class="dri" onclick="testNotif()"><span class="dric">🔔</span>Test Notification</button>
+    <div class="drdiv"></div>
+    <button class="dri red" onclick="closeDrawer();doOut()"><span class="dric">🚪</span>Sign Out</button>
+  </div>
+  <div class="drf">LiquidChat · by OmniSphere Labs</div>
+</div>
+
+<!-- P2P PAGE -->
+<div class="page" id="page-p2p">
+  <div class="pgh"><h2>🔄 P2P Market</h2></div>
+  <div class="coming"><div class="ci2">🔄</div><h3>Coming Soon</h3><p>Peer-to-peer crypto trading with escrow protection. Stay tuned!</p></div>
+</div>
+
+<!-- MEDIA PAGE -->
+<div class="page" id="page-media">
+  <div class="pgh"><h2>🎬 Media</h2></div>
+  <div class="coming"><div class="ci2">🎬</div><h3>Coming Soon</h3><p>Locked content feed. Pay to view or subscribe to creators.</p></div>
+</div>
+
+<!-- SUBSCRIBED PAGE -->
+<div class="page" id="page-sub">
+  <div class="pgh"><h2>⭐ Subscribed</h2></div>
+  <div class="coming"><div class="ci2">⭐</div><h3>Coming Soon</h3><p>See all creators you subscribe to in one place.</p></div>
+</div>
+
+<!-- WALLET PAGE -->
+<div class="page" id="page-wallet">
+  <div class="pgh"><h2>👛 Wallet</h2></div>
+  <div class="coming"><div class="ci2">👛</div><h3>Coming Soon</h3><p>Deposit, withdraw and manage your funds easily.</p></div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div class="page" id="page-settings">
+  <div class="pgh">
+    <div class="bk" onclick="closePage('settings')">←</div>
+    <h2 id="settings-title">Settings</h2>
+  </div>
+  <div class="pgb">
+    <!-- Security -->
+    <div id="set-security" style="display:none">
+      <div class="lbl">Current Password</div><input type="password" id="sec-old" placeholder="Current password">
+      <div class="lbl">New Password</div><input type="password" id="sec-new" placeholder="New password (min 6 chars)">
+      <div class="lbl">Confirm New Password</div><input type="password" id="sec-con" placeholder="Confirm new password">
+      <button class="abtn" onclick="changePass()" style="margin-top:8px;">Update Password</button>
+    </div>
+    <!-- Creator Apply -->
+    <div id="set-creator" style="display:none">
+      <div style="background:linear-gradient(135deg,var(--ac),var(--ac2));border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;">
+        <div style="font-size:32px;margin-bottom:6px;">🎨</div>
+        <div style="font-weight:800;font-size:16px;color:#fff;">Become a Creator</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:4px;">Monetize your content on LiquidChat</div>
+      </div>
+      <div class="lbl">Full Name</div><input type="text" id="cr-name" placeholder="Your real name">
+      <div class="lbl">What will you create?</div>
+      <select id="cr-type"><option value="">Select content type...</option><option>Photos & Videos</option><option>Tutorials</option><option>Music</option><option>Art & Design</option><option>Other</option></select>
+      <div class="lbl">Tell us about yourself</div>
+      <input type="text" id="cr-bio" placeholder="Short bio...">
+      <button class="abtn" onclick="submitCreator()" style="margin-top:8px;">Submit Application</button>
+    </div>
+    <!-- Help -->
+    <div id="set-help" style="display:none">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="background:var(--s2);border-radius:12px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:4px;">💬 How do I send a DM?</div>
+          <div style="font-size:13px;color:var(--t2);line-height:1.6;">Tap the ✉️ icon in the Messages tab, search by name or LC-ID, and tap Open Chat.</div>
+        </div>
+        <div style="background:var(--s2);border-radius:12px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:4px;">👥 How do I create a group?</div>
+          <div style="font-size:13px;color:var(--t2);line-height:1.6;">VIP users can tap 👥 in the Messages tab to create a group chat.</div>
+        </div>
+        <div style="background:var(--s2);border-radius:12px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:4px;">⭐ What is VIP?</div>
+          <div style="font-size:13px;color:var(--t2);line-height:1.6;">VIP unlocks group creation, name changes, and a gold badge. Tap your profile to upgrade.</div>
+        </div>
+        <div style="background:var(--s2);border-radius:12px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:4px;">📧 Contact Support</div>
+          <div style="font-size:13px;color:var(--t2);line-height:1.6;">Email us at support@liquidchats.vercel.app or DM @admin on LiquidChat.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -582,7 +593,7 @@ function avH(p,sz,cls){
   const col=p?.avatar_color||'#6c63ff';
   const ini=(nm(p)||'?').slice(0,2).toUpperCase();
   const s=sz+'px';
-  if(p?.avatar_url)return'<img src="'+esc(p.avatar_url)+'" style="width:'+s+';height:'+s+';border-radius:50%;object-fit:cover;" class="'+(cls||'')+'">'; 
+  if(p?.avatar_url)return'<img src="'+esc(p.avatar_url)+'" style="width:'+s+';height:'+s+';border-radius:50%;object-fit:cover;" class="'+(cls||'')+'">';
   return'<div class="'+(cls||'')+'" style="width:'+s+';height:'+s+';border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-size:'+(sz*.35|0)+'px;font-weight:700;color:#fff;flex-shrink:0;">'+ini+'</div>';
 }
 function ft(d){const now=new Date(),dt=new Date(d),df=now-dt;if(df<86400000)return dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});if(df<604800000)return dt.toLocaleDateString([],{weekday:'short'});return dt.toLocaleDateString([],{month:'short',day:'numeric'});}
@@ -594,6 +605,7 @@ function stab(t){
   document.querySelectorAll('.tab').forEach((e,i)=>e.classList.toggle('on',(t==='l'&&i===0)||(t==='s'&&i===1)));
   document.getElementById('aerr').style.display='none';
 }
+
 // SIGNUP
 async function doS(){
   const err=document.getElementById('aerr');
@@ -665,19 +677,16 @@ async function loadC(){
   const{data:cs}=await sb.from('lc_conversations').select('*').in('id',ids).order('updated_at',{ascending:false});
   cvs=cs||[];
 
-  // Step 1: Get all last messages
   await Promise.all(cvs.map(async c=>{
     const{data:lm}=await sb.from('lc_messages').select('content,created_at,message_type,sender_id').eq('conversation_id',c.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
     c._l=lm||null;
   }));
 
-  // Step 2: Get all other user IDs for direct chats in one query
   const directIds=cvs.filter(c=>c.type==='direct').map(c=>c.id);
   if(directIds.length){
     const{data:allMembers}=await sb.from('lc_members').select('conversation_id,user_id').in('conversation_id',directIds).neq('user_id',me.id);
     if(allMembers?.length){
       const otherUids=[...new Set(allMembers.map(m=>m.user_id))];
-
       const{data:allProfiles}=await sb.from('profiles').select('id,full_name,username,email,avatar_url,avatar_color,is_vip,liquid_id').in('id',otherUids);
       const profMap={};
       (allProfiles||[]).forEach(p=>profMap[p.id]=p);
@@ -687,10 +696,8 @@ async function loadC(){
       });
     }
   }
-  // Sort by most recent
   cvs.sort((a,b)=>new Date(b.updated_at||b.created_at)-new Date(a.updated_at||a.created_at));
   rC(cvs);
-  // Second pass - reload any convs that still show Unknown
   const unknownConvs=cvs.filter(c=>c.type==='direct'&&!c._o);
   if(unknownConvs.length){
     for(const c of unknownConvs){
@@ -737,12 +744,10 @@ async function oC(id){
     const{data:om}=await sb.from('lc_members').select('user_id').eq('conversation_id',id).neq('user_id',me.id).limit(1);
     if(om?.[0]){const{data:op}=await sb.from('profiles').select('*').eq('id',om[0].user_id).maybeSingle();cc._o=op||null;}
   }
-  // Show chat
   document.getElementById('emp').style.display='none';
   document.getElementById('cv').style.display='flex';
   document.getElementById('cm').classList.add('show');
   history.pushState(null,'',window.location.href);
-  // Topbar
   const ig=cc.type==='group';
   const name=ig?cc.name:nm(cc._o);
   const col=ig?(cc.avatar_color||'#6c63ff'):(cc._o?.avatar_color||'#6c63ff');
@@ -786,7 +791,6 @@ async function lM(cid){
     const vo=msg.view_once&&msg.sender_id!==me.id&&msg.viewed;
     const voUnread=msg.view_once&&msg.sender_id!==me.id&&!msg.viewed;
     const bblContent=voUnread?'<span style="cursor:pointer" data-vid="'+msg.id+'" onclick="viewOnce(this.dataset.vid,this)">👁 Tap to view once</span>':bc;
-    const editedTag=msg.is_edited?'<span style="font-size:9px;color:var(--t3);margin-left:4px;">(edited)</span>':'';
     const actId='act_'+msg.id;
     if(!mine){
       html+=(ig&&p?'<div class="msn">'+esc(nm(p))+'</div>':'')+
@@ -845,7 +849,6 @@ let voOnClick=false;
 function captureVOState(){voOnClick=voMode;}
 
 async function sImgVO(inp){
-  // If view once mode, mark image as view once
   if(voOnClick||voMode){
     const f=inp.files[0];if(!f||!cc)return;
     const ext=f.name.split('.').pop();
@@ -857,7 +860,6 @@ async function sImgVO(inp){
     sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',cc.id);
     document.getElementById('mta').value='';
     inp.value='';
-    // Reset view once
     voMode=false;voOnClick=false;
     const btn=document.getElementById('vobtn');
     btn.innerHTML='👁';btn.style.color='var(--t2)';btn.title='View Once OFF';
@@ -887,7 +889,6 @@ function subRT(){
       if(area)area.scrollTop=area.scrollHeight;
     }
     loadC();
-    // Send notification if message is from someone else
     if(pl.new.sender_id!==me.id){
       const{data:sender}=await sb.from('profiles').select('full_name,username').eq('id',pl.new.sender_id).maybeSingle();
       const senderName=sender?.full_name||sender?.username||'Someone';
@@ -900,7 +901,6 @@ function subRT(){
 // DM
 function oDM(){sdmu=null;document.getElementById('dms').value='';document.getElementById('dml').innerHTML='';document.getElementById('dmod').classList.add('show');history.pushState(null,'',window.location.href);}
 function cDM(){document.getElementById('dmod').classList.remove('show');}
-
 async function sDU(){
   const q=document.getElementById('dms').value.trim();
   if(!q){document.getElementById('dml').innerHTML='';return;}
@@ -977,7 +977,6 @@ async function cG(){
 // GROUP SETTINGS
 async function oGS(){
   if(!cc||cc.type!=='group')return;
-  // Show current group avatar
   const gsav=document.getElementById('gsav');
   if(cc.avatar_url){gsav.innerHTML='<img src="'+cc.avatar_url+'" style="width:60px;height:60px;border-radius:14px;object-fit:cover;">';}
   else{gsav.style.background=cc.avatar_color||'#6c63ff';gsav.textContent='👥';}
@@ -1106,7 +1105,6 @@ function oMP(){
   const a=document.getElementById('mpav');
   if(mp.avatar_url){a.innerHTML='<img src="'+esc(mp.avatar_url)+'" style="width:72px;height:72px;border-radius:50%;object-fit:cover;">';a.style.background='transparent';}
   else{a.style.background=mp.avatar_color||'#6c63ff';a.textContent=(nm(mp)||'?').slice(0,2).toUpperCase();}
-  document.getElementById('amenu').style.display='none';
   document.getElementById('mpmod').classList.add('show');history.pushState(null,'',window.location.href);
 }
 function cMP(){document.getElementById('mpmod').classList.remove('show');}
@@ -1118,6 +1116,7 @@ async function svMP(){
   if(error){alert('Error: '+error.message);return;}
   Object.assign(mp,upd);
   document.getElementById('men').textContent=nm(mp);
+  document.getElementById('drn').textContent=nm(mp);
   cMP();alert('Saved!');
 }
 async function upAv(inp){
@@ -1130,17 +1129,15 @@ async function upAv(inp){
   mp.avatar_url=ul.publicUrl;
   document.getElementById('mpav').innerHTML='<img src="'+esc(ul.publicUrl)+'" style="width:72px;height:72px;border-radius:50%;object-fit:cover;">';
   const mav=document.getElementById('meav');mav.innerHTML='<img src="'+esc(ul.publicUrl)+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;">';
+  const drav=document.getElementById('drav');drav.innerHTML='<img src="'+esc(ul.publicUrl)+'" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">';
   alert('Photo updated!');
 }
-
-function tAM(){const m=document.getElementById('amenu');m.style.display=m.style.display==='flex'?'none':'flex';}
 
 // ── MESSAGE ACTIONS ──
 let voMode=false;
 let ctxMsg=null;
 let lpTimer=null;
 
-// Long press handlers
 function lpStart(e,el){
   lpTimer=setTimeout(()=>{
     e.preventDefault();
@@ -1148,7 +1145,6 @@ function lpStart(e,el){
   },500);
 }
 function lpEnd(){clearTimeout(lpTimer);}
-
 function showCtx(e,el){
   e.preventDefault();
   ctxMsg={id:el.dataset.id,content:el.dataset.content,mine:el.dataset.mine==='1'};
@@ -1156,11 +1152,9 @@ function showCtx(e,el){
   const edit=document.getElementById('ctx-edit');
   const del=document.getElementById('ctx-del');
   const div=document.getElementById('ctx-divider');
-  // Show edit/delete only for own messages
   edit.style.display=ctxMsg.mine?'flex':'none';
   del.style.display=ctxMsg.mine?'flex':'none';
   div.style.display=ctxMsg.mine?'block':'none';
-  // Position menu
   const x=Math.min(e.clientX||e.touches?.[0]?.clientX||100, window.innerWidth-170);
   const y=Math.min(e.clientY||e.touches?.[0]?.clientY||100, window.innerHeight-160);
   menu.style.left=x+'px';
@@ -1201,21 +1195,7 @@ async function ctxDel(){
   await lM(cc.id);loadC();
 }
 
-// Close context menu on outside click
-document.addEventListener('click',()=>document.getElementById('ctxmenu').style.display='none');
-
-// Legacy functions (keep for compatibility)
-async function editMsg(mid){
-  const newText=prompt('Edit message:');
-  if(!newText)return;
-  await sb.from('lc_messages').update({content:newText,is_edited:true}).eq('id',mid).eq('sender_id',me.id);
-  await lM(cc.id);
-}
-async function delMsg(mid){
-  if(!confirm('Delete?'))return;
-  await sb.from('lc_messages').delete().eq('id',mid).eq('sender_id',me.id);
-  await lM(cc.id);loadC();
-}
+document.addEventListener('click',()=>{const m=document.getElementById('ctxmenu');if(m)m.style.display='none';});
 
 async function viewOnce(mid,el){
   await sb.from('lc_messages').update({viewed:true}).eq('id',mid);
@@ -1252,7 +1232,6 @@ async function initNotifications(){
   if(Notification.permission==='default'){
     await Notification.requestPermission();
   }
-  // Register service worker
   if('serviceWorker' in navigator){
     try{
       await navigator.serviceWorker.register('/sw.js');
@@ -1263,7 +1242,6 @@ async function initNotifications(){
 function sendNotification(title,body){
   if(Notification.permission!=='granted')return;
   try{
-    // Use service worker for better background support
     if(navigator.serviceWorker?.controller){
       navigator.serviceWorker.ready.then(reg=>{
         reg.showNotification(title,{
@@ -1286,166 +1264,13 @@ function sendNotification(title,body){
   }catch(e){console.log('Notif error:',e);}
 }
 
-function testNotif(){
-  if(Notification.permission==='granted'){
-    sendNotification('🫟 LiquidChat','Notifications are working!');
-    alert('Test notification sent!');
-  } else if(Notification.permission==='denied'){
-    alert('Notifications are blocked. Please enable them in your browser settings.');
-  } else {
-    Notification.requestPermission().then(p=>{
-      if(p==='granted') sendNotification('🫟 LiquidChat','Notifications are working!');
-      else alert('Permission denied.');
-    });
-  }
-}
-
-function toggleVO(){
-  voMode=!voMode;
-  const btn=document.getElementById('vobtn');
-  btn.innerHTML=voMode?'🔒':'👁';
-  btn.style.color=voMode?'var(--ac)':'var(--t2)';
-  btn.style.borderColor=voMode?'var(--ac)':'var(--bd)';
-  btn.style.background=voMode?'var(--glow)':'none';
-  btn.title=voMode?'View Once ON':'View Once OFF';
-}
-
-function toggleMsgMenu(mid){
-  const menu=document.getElementById('menu_'+mid);
-  if(!menu)return;
-  const isOpen=menu.style.display==='flex';
-  // Close all menus first
-  document.querySelectorAll('.msg-menu').forEach(m=>m.style.display='none');
-  if(!isOpen)menu.style.display='flex';
-}
-
-document.addEventListener('click',function(e){
-  if(!e.target.closest('.mwrap'))
-    document.querySelectorAll('.msg-menu').forEach(m=>m.style.display='none');
-});
-
-async function editMsg(mid){
-  document.querySelectorAll('.msg-menu').forEach(m=>m.style.display='none');
-  const bbl=document.getElementById('bbl_'+mid);
-  const oldText=bbl?bbl.textContent.trim():'';
-  const newText=prompt('Edit message:',oldText);
-  if(!newText||newText===oldText)return;
-  const{error}=await sb.from('lc_messages').update({content:newText,is_edited:true}).eq('id',mid).eq('sender_id',me.id);
-  if(error){alert('Error: '+error.message);return;}
-  await lM(cc.id);
-}
-
-async function delMsg(mid){
-  document.querySelectorAll('.msg-menu').forEach(m=>m.style.display='none');
-  if(!confirm('Delete this message?'))return;
-  const{error}=await sb.from('lc_messages').delete().eq('id',mid).eq('sender_id',me.id);
-  if(error){alert('Error: '+error.message);return;}
-  await lM(cc.id);loadC();
-}
-
-async function viewOnce(mid,el){
-  await sb.from('lc_messages').update({viewed:true}).eq('id',mid);
-  if(el)el.parentElement.querySelector('.vo-overlay')?.remove();
-}
-
-function tAM(){const m=document.getElementById('amenu');m.style.display=m.style.display==='flex'?'none':'flex';}
-
-// ── MESSAGE ACTIONS ──
-let activeMenu=null;
-
-function testNotif(){
-  if(Notification.permission==='granted'){
-    sendNotification('🫟 LiquidChat','Notifications are working!');
-    alert('Test notification sent!');
-  } else if(Notification.permission==='denied'){
-    alert('Notifications are blocked. Please enable them in your browser settings.');
-  } else {
-    Notification.requestPermission().then(p=>{
-      if(p==='granted') sendNotification('🫟 LiquidChat','Notifications are working!');
-      else alert('Permission denied.');
-    });
-  }
-}
-
-function toggleVO(){
-  voMode=!voMode;
-  const btn=document.getElementById('vobtn');
-  btn.style.color=voMode?'var(--ac)':'var(--t2)';
-  btn.title=voMode?'View Once ON':'View Once OFF';
-}
-
-function showMsgMenu(e,el){
-  e.stopPropagation();
-  const msgId=el.closest('.mwrap').querySelector('.macts2').id.replace('act_','');
-  if(activeMenu&&activeMenu!==msgId){
-    const old=document.getElementById('act_'+activeMenu);
-    if(old)old.classList.remove('show');
-  }
-  const menu=document.getElementById('act_'+msgId);
-  if(!menu)return;
-  const isOpen=menu.classList.contains('show');
-  menu.classList.toggle('show',!isOpen);
-  activeMenu=isOpen?null:msgId;
-}
-
-function editMsgBtn(msgId,oldContent){
-  editMsg(msgId,oldContent);
-}
-
-// Close menus when clicking elsewhere
-document.addEventListener('click',()=>{
-  if(activeMenu){
-    const m=document.getElementById('act_'+activeMenu);
-    if(m)m.classList.remove('show');
-    activeMenu=null;
-  }
-});
-
-async function editMsg(msgId,oldContent){
-  const newContent=prompt('Edit message:',oldContent);
-  if(!newContent||newContent===oldContent)return;
-  const{error}=await sb.from('lc_messages').update({content:newContent,is_edited:true}).eq('id',msgId).eq('sender_id',me.id);
-  if(error){alert('Error: '+error.message);return;}
-  await lM(cc.id);
-}
-
-async function delMsg(msgId){
-  if(!confirm('Delete this message?'))return;
-  const{error}=await sb.from('lc_messages').delete().eq('id',msgId).eq('sender_id',me.id);
-  if(error){alert('Error: '+error.message);return;}
-  await lM(cc.id);
-  loadC();
-}
-
-function replyMsg(preview){
-  const ta=document.getElementById('mta');
-  ta.value='> '+preview+'...\n';
-  ta.focus();
-  ta.setSelectionRange(ta.value.length,ta.value.length);
-  // Close menu
-  if(activeMenu){
-    const m=document.getElementById('act_'+activeMenu);
-    if(m)m.classList.remove('show');
-    activeMenu=null;
-  }
-}
-
-async function viewOnce(msgId,el){
-  // Mark as viewed and show content
-  await sb.from('lc_messages').update({viewed:true}).eq('id',msgId);
-  const overlay=el.closest('.vo-overlay');
-  if(overlay)overlay.remove();
-}
-
-function oVIP(){document.getElementById('cMP')&&cMP();document.getElementById('vipmod').classList.add('show');history.pushState(null,'',window.location.href);}
+function oVIP(){cMP();document.getElementById('vipmod').classList.add('show');history.pushState(null,'',window.location.href);}
 function cVIP(){document.getElementById('vipmod').classList.remove('show');}
 function copyAddr(el){navigator.clipboard.writeText(el.textContent).then(()=>alert('Address copied!')).catch(()=>{const r=document.createRange();r.selectNode(el);window.getSelection().removeAllRanges();window.getSelection().addRange(r);document.execCommand('copy');alert('Address copied!');});}
 async function submitVIP(){
   const txid=document.getElementById('txid').value.trim();
   if(!txid){alert('Please enter your transaction ID.');return;}
-  // Save as a message to admin or just store in profiles bio temporarily
   try{
-    // Try to save to profiles - add txid to a note field
     await sb.from('profiles').update({bio:(mp?.bio||'')+' [VIP-TX:'+txid+']'}).eq('id',me.id);
   }catch(e){}
   alert('✅ Payment submitted!\n\nYour VIP will be activated within 24 hours after verification.\n\nTransaction ID saved: '+txid);
@@ -1455,38 +1280,6 @@ async function submitVIP(){
 function oIV(src){document.getElementById('ivi').src=src;document.getElementById('iv').style.display='flex';}
 function closeIV(){document.getElementById('iv').style.display='none';}
 
-// Intercept browser back button
-window.addEventListener('popstate', function(e){
-  // Check if any modal is open - close it
-  const modals=['vipmod','mpmod','pvmod','sgmod','gsmod','gmod','dmod'];
-  for(const id of modals){
-    const m=document.getElementById(id);
-    if(m&&m.classList.contains('show')){
-      m.classList.remove('show');
-      history.pushState(null,'',window.location.href);
-      return;
-    }
-  }
-// If drawer open - close it
-  const dr=document.getElementById('drawer');
-  if(dr&&dr.classList.contains('show')){
-    closeDrawer();
-    history.pushState(null,'',window.location.href);
-    return;
-  }
-  // If settings page open - close it
-  const sp=document.getElementById('page-settings');
-  if(sp&&sp.classList.contains('show')){
-    closePage('settings');
-    history.pushState(null,'',window.location.href);
-    return;
-  }
-  // If chat is open - go back to list
-  if(document.getElementById('cm').classList.contains('show')){
-    goBack();
-    history.pushState(null,'',window.location.href);
-  }
-});
 // ── NAVIGATION ──
 function openDrawer(){
   document.getElementById('drawer').classList.add('show');
@@ -1555,6 +1348,36 @@ async function submitCreator(){
   document.getElementById('cr-bio').value='';
   document.getElementById('cr-type').value='';
 }
+
+// Intercept browser back button
+window.addEventListener('popstate', function(e){
+  const modals=['vipmod','mpmod','pvmod','sgmod','gsmod','gmod','dmod'];
+  for(const id of modals){
+    const m=document.getElementById(id);
+    if(m&&m.classList.contains('show')){
+      m.classList.remove('show');
+      history.pushState(null,'',window.location.href);
+      return;
+    }
+  }
+  const dr=document.getElementById('drawer');
+  if(dr&&dr.classList.contains('show')){
+    closeDrawer();
+    history.pushState(null,'',window.location.href);
+    return;
+  }
+  const sp=document.getElementById('page-settings');
+  if(sp&&sp.classList.contains('show')){
+    closePage('settings');
+    history.pushState(null,'',window.location.href);
+    return;
+  }
+  if(document.getElementById('cm').classList.contains('show')){
+    goBack();
+    history.pushState(null,'',window.location.href);
+  }
+});
+
 // SESSION CHECK
 (async()=>{
   const path=window.location.pathname;
@@ -1565,7 +1388,6 @@ async function submitCreator(){
     document.getElementById('auth').classList.remove('show');
     await initApp(session.user);
   } else if(isInvite){
-    // Show auth with message about invite
     document.getElementById('aerr').textContent='Please sign in to join this group.';
     document.getElementById('aerr').style.display='block';
   }
