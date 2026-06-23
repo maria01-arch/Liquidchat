@@ -592,6 +592,9 @@ function avH(p,sz,cls){
   return'<div class="'+(cls||'')+'" style="width:'+s+';height:'+s+';border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-size:'+(sz*.35|0)+'px;font-weight:700;color:#fff;flex-shrink:0;">'+ini+'</div>';
 }
 function ft(d){const now=new Date(),dt=new Date(d),df=now-dt;if(df<86400000)return dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});if(df<604800000)return dt.toLocaleDateString([],{weekday:'short'});return dt.toLocaleDateString([],{month:'short',day:'numeric'});}
+function isOnline(p){if(!p?.last_seen)return false;return(Date.now()-new Date(p.last_seen).getTime())<60000;}
+function lastSeenText(p){if(!p)return'';if(isOnline(p))return'Online';if(!p.last_seen)return'Offline';return'Last seen '+ft(p.last_seen);}
+function onlineDot(p){return isOnline(p)?'<div style="position:absolute;width:10px;height:10px;border-radius:50%;background:#3ddc84;border:2px solid var(--bg);bottom:-1px;right:-1px;"></div>':'';}
 
 // AUTH TABS
 function stab(t){
@@ -662,6 +665,7 @@ async function initApp(user){
   subRT();
   await hIL();
   initNotifications();
+  startHeartbeat();
 }
 
 // LOAD CONVERSATIONS
@@ -682,7 +686,7 @@ async function loadC(){
     const{data:allMembers}=await sb.from('lc_members').select('conversation_id,user_id').in('conversation_id',directIds).neq('user_id',me.id);
     if(allMembers?.length){
       const otherUids=[...new Set(allMembers.map(m=>m.user_id))];
-      const{data:allProfiles}=await sb.from('profiles').select('id,full_name,username,email,avatar_url,avatar_color,is_vip,liquid_id').in('id',otherUids);
+      const{data:allProfiles}=await sb.from('profiles').select('id,full_name,username,email,avatar_url,avatar_color,is_vip,liquid_id,last_seen').in('id',otherUids);
       const profMap={};
       (allProfiles||[]).forEach(p=>profMap[p.id]=p);
       allMembers.forEach(m=>{
@@ -718,7 +722,8 @@ function rC(list){
     const tm=c._l?ft(c._l.created_at):'';
     const act=cc?.id===c.id?'on':'';
     const unread=c._l&&c._l.sender_id&&c._l.sender_id!==me.id&&(!lr[c.id]||new Date(c._l.created_at)>new Date(lr[c.id]));
-    const avEl=ig?(c.avatar_url?'<div class="av grp"><img src="'+esc(c.avatar_url)+'"></div>':'<div class="av grp" style="background:'+col+'">👥</div>'):(c._o?.avatar_url?'<div class="av"><img src="'+esc(c._o.avatar_url)+'"></div>':'<div class="av" style="background:'+col+'">'+ini+'</div>');
+    const avInner=ig?(c.avatar_url?'<div class="av grp"><img src="'+esc(c.avatar_url)+'"></div>':'<div class="av grp" style="background:'+col+'">👥</div>'):(c._o?.avatar_url?'<div class="av"><img src="'+esc(c._o.avatar_url)+'"></div>':'<div class="av" style="background:'+col+'">'+ini+'</div>');
+    const avEl='<div style="position:relative;flex-shrink:0;">'+avInner+(!ig?onlineDot(c._o):'')+'</div>';
     return'<div class="ci '+act+'" onclick="oC(\''+c.id+'\')">'+avEl+'<div class="cinfo"><div class="cname">'+esc(name)+'</div><div class="cprev">'+esc(lt.substring(0,42))+'</div></div><div class="cmeta"><div class="ct">'+tm+'</div>'+(unread?'<div class="dot"></div>':'')+'</div></div>';
   }).join('');
 }
@@ -754,7 +759,11 @@ async function oC(id){
   else{tav.style.background=ig?'var(--s3)':col;tav.innerHTML=ig?'👥':(name||'?').slice(0,2).toUpperCase();}
   document.getElementById('tn').textContent=name||(cc._o?.liquid_id||'');
   if(ig){const{count}=await sb.from('lc_members').select('*',{count:'exact',head:true}).eq('conversation_id',id);document.getElementById('ts').textContent=count+' members';}
-  else document.getElementById('ts').textContent='ID: '+(cc._o?.liquid_id||'');
+  else{
+    const ts=document.getElementById('ts');
+    ts.textContent=lastSeenText(cc._o)||('ID: '+(cc._o?.liquid_id||''));
+    ts.style.color=isOnline(cc._o)?'#3ddc84':'var(--t3)';
+  }
   const iam=await chkA(id);
   document.getElementById('gsb').style.display=ig&&iam?'flex':'none';
   document.getElementById('pvb').style.display=!ig?'flex':'none';
@@ -1073,6 +1082,7 @@ function shP(p,showMsg){
     (p?.avatar_url?'<div class="pav"><img src="'+esc(p.avatar_url)+'"></div>':'<div class="pav" style="background:'+(p?.avatar_color||'#6c63ff')+'">'+((nm(p)||'?').slice(0,2).toUpperCase())+'</div>')+
     '<div class="pn">'+esc(nm(p))+(p?.is_vip?' <span class="vip">★ VIP</span>':'')+'</div>'+
     '<div class="pid">'+esc(p?.liquid_id||'')+'</div>'+
+    '<div style="font-size:11px;margin-top:4px;color:'+(isOnline(p)?'#3ddc84':'var(--t3)')+';">'+lastSeenText(p)+'</div>'+
     (p?.bio?'<div class="pf"><div class="pfl">Bio</div><div class="pfv">'+esc(p.bio)+'</div></div>':'')+
     (p?.work?'<div class="pf"><div class="pfl">Work</div><div class="pfv">'+esc(p.work)+'</div></div>':'')+
     (p?.looking_for?'<div class="pf"><div class="pfl">Looking for</div><div class="pfv">'+esc(p.looking_for)+'</div></div>':'')+
@@ -1221,6 +1231,19 @@ function toggleVO(){
   btn.style.borderColor=voMode?'var(--ac)':'var(--bd)';
   btn.style.background=voMode?'var(--glow)':'none';
   btn.title=voMode?'View Once ON':'View Once OFF';
+}
+
+// ── PRESENCE ──
+let hbTimer=null;
+function startHeartbeat(){
+  pingPresence();
+  if(hbTimer)clearInterval(hbTimer);
+  hbTimer=setInterval(pingPresence,25000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pingPresence();});
+}
+async function pingPresence(){
+  if(!me)return;
+  try{await sb.from('profiles').update({last_seen:new Date().toISOString()}).eq('id',me.id);}catch(e){}
 }
 
 // ── NOTIFICATIONS ──
