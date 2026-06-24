@@ -178,6 +178,22 @@ textarea.ti2::placeholder{color:var(--t3);}
 .emp h3{font-size:17px;font-weight:700;color:var(--t2);}
 .emp p{font-size:12px;text-align:center;max-width:220px;line-height:1.6;}
 
+/* PINNED BAR */
+.pinbar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--glow);border-bottom:1px solid var(--bd);cursor:pointer;flex-shrink:0;font-size:12px;color:var(--ac);}
+.pinbar .pbtxt{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+
+/* REACTIONS */
+.reacts{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;}
+.reactpill{background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:2px 7px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:3px;}
+.reactpill.mine{border-color:var(--ac);background:var(--glow);}
+
+/* STICKERS */
+.stktab{flex-shrink:0;padding:7px 10px;border-radius:9px;border:1px solid var(--bd);background:var(--s2);font-size:13px;cursor:pointer;white-space:nowrap;}
+.stktab.on{border-color:var(--ac);background:var(--glow);}
+.stkitem{font-size:30px;text-align:center;padding:8px 0;border-radius:10px;cursor:pointer;background:var(--s2);}
+.stkitem:hover{background:var(--glow);}
+.bbl.stk{background:none!important;padding:2px!important;font-size:54px;line-height:1;}
+
 /* OVERLAY & MODAL */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;z-index:100;backdrop-filter:blur(4px);overflow-y:auto;padding:16px;}
 .ov.show{display:flex;align-items:flex-start;justify-content:center;}
@@ -239,7 +255,17 @@ textarea.ti2::placeholder{color:var(--t3);}
 
 <!-- CONTEXT MENU -->
 <div id="ctxmenu">
+  <div id="ctx-react" style="display:flex;gap:2px;padding:4px 4px 6px;">
+    <button onclick="reactMsg(ctxMsg.id,'❤️')" style="font-size:19px;padding:4px 6px;border:none;background:none;cursor:pointer;">❤️</button>
+    <button onclick="reactMsg(ctxMsg.id,'😂')" style="font-size:19px;padding:4px 6px;border:none;background:none;cursor:pointer;">😂</button>
+    <button onclick="reactMsg(ctxMsg.id,'👍')" style="font-size:19px;padding:4px 6px;border:none;background:none;cursor:pointer;">👍</button>
+    <button onclick="reactMsg(ctxMsg.id,'😮')" style="font-size:19px;padding:4px 6px;border:none;background:none;cursor:pointer;">😮</button>
+    <button onclick="reactMsg(ctxMsg.id,'😢')" style="font-size:19px;padding:4px 6px;border:none;background:none;cursor:pointer;">😢</button>
+    <button onclick="reactMsg(ctxMsg.id,'🙏')" style="font-size:19px;padding:4px 6px;border:none;background:none;cursor:pointer;">🙏</button>
+  </div>
+  <div class="divider"></div>
   <button id="ctx-copy" onclick="ctxCopy()">📋 Copy</button>
+  <button id="ctx-pin" onclick="ctxPin()">📌 Pin</button>
   <div class="divider" id="ctx-divider"></div>
   <button id="ctx-edit" onclick="ctxEdit()">✏️ Edit</button>
   <button id="ctx-del" onclick="ctxDel()" class="red">🗑 Delete</button>
@@ -308,11 +334,13 @@ textarea.ti2::placeholder{color:var(--t3);}
         <div class="hb" id="gsb" style="display:none" onclick="oGS()">⚙️</div>
         <div class="hb" id="pvb" style="display:none" onclick="vOP()">👤</div>
       </div>
+      <div class="pinbar" id="pinbar" style="display:none" onclick="showPinnedList()"></div>
       <div class="msgs" id="msgs"></div>
       <div class="ibar">
         <button id="vobtn" onclick="toggleVO()" style="padding:8px;background:none;border:1px solid var(--bd);border-radius:8px;color:var(--t2);font-size:18px;cursor:pointer;flex-shrink:0;line-height:1;" title="View Once OFF">👁</button>
         <div class="iw">
           <textarea class="ti2" id="mta" placeholder="Write a message..." rows="1" onkeydown="hK(event)" oninput="aR(this)"></textarea>
+          <button type="button" class="imgb" onclick="oStk()" style="border:none;background:none;">😊</button>
           <label class="imgb" for="imgf" onclick="captureVOState()">📎</label>
           <input type="file" id="imgf" accept="image/*" onchange="sImgVO(this)">
         </div>
@@ -534,6 +562,25 @@ textarea.ti2::placeholder{color:var(--t3);}
   </div>
 </div>
 
+<!-- PINNED LIST -->
+<div class="ov" id="pinmod">
+  <div class="mod">
+    <h3>📌 Pinned Messages</h3>
+    <div class="ulist" id="pinl"></div>
+    <div class="macts"><button class="mb s" onclick="closePinnedList()">Close</button></div>
+  </div>
+</div>
+
+<!-- STICKER PICKER -->
+<div class="ov" id="stkmod">
+  <div class="mod" style="max-width:420px;">
+    <h3>😊 Stickers</h3>
+    <div id="stkTabs" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:4px;"></div>
+    <div id="stkGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-height:280px;overflow-y:auto;margin-bottom:8px;"></div>
+    <div class="macts"><button class="mb s" onclick="cStk()">Close</button></div>
+  </div>
+</div>
+
 <!-- VIP MODAL -->
 <div class="ov" id="vipmod">
   <div class="mod">
@@ -580,7 +627,15 @@ const SU='https://mrmkrttvmsechffswxct.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ybWtydHR2bXNlY2hmZnN3eGN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTk0ODEsImV4cCI6MjA5NDY3NTQ4MX0.aHsYc5-dnmT8OKG0Lqvg_4O9IOuCHhZ25CRxwHD0ZH0';
 const{createClient}=supabase;
 const sb=createClient(SU,SK);
-let me=null,mp=null,cc=null,cvs=[],sdmu=null,sgus=[],jm='open',gsr=[],dmr=[],rt=null,vu=null,lr={};
+let me=null,mp=null,cc=null,cvs=[],sdmu=null,sgus=[],jm='open',gsr=[],dmr=[],rt=null,vu=null,lr={},pinnedMsgs=[],stkCat=0;
+const STICKERS=[
+  {n:'😀 Faces',e:['😀','😂','🥰','😎','😭','😡','🤔','😴','🥳','😱','🤪','😇']},
+  {n:'❤️ Love',e:['❤️','💕','💖','💋','😍','🥰','💔','😘','💗','💘']},
+  {n:'👍 Reactions',e:['👍','👎','👏','🙌','🤝','✌️','🤞','🙏','💪','👌']},
+  {n:'🎉 Fun',e:['🎉','🔥','✨','💯','🎶','⚡','🌈','🍀','🎁','🎈']},
+  {n:'🐾 Animals',e:['🐶','🐱','🐼','🦄','🐸','🐵','🦋','🐢','🦁','🐰']},
+  {n:'🍕 Food',e:['🍕','🍔','🍟','🍩','🍦','🍺','☕','🍿','🍩','🍫']}
+];
 
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function nm(p){if(!p)return'Unknown';if(p.full_name)return p.full_name;if(p.username)return p.username;if(p.email)return p.email.split('@')[0];if(p.liquid_id)return p.liquid_id;return'Unknown';}
@@ -719,7 +774,7 @@ function rC(list){
     const name=ig?c.name:(c._o?nm(c._o):(c._oid||'Unknown'));
     const col=ig?(c.avatar_color||'#6c63ff'):(c._o?.avatar_color||'#6c63ff');
     const ini=ig?'👥':(name||'?').slice(0,2).toUpperCase();
-    const lt=c._l?(c._l.deleted_for_everyone?'🚫 Message deleted':(c._l.message_type==='image'?'📷 Image':c._l.content||'')):'No messages yet';
+    const lt=c._l?(c._l.deleted_for_everyone?'🚫 Message deleted':(c._l.message_type==='image'?'📷 Image':(c._l.message_type==='sticker'?c._l.content+' Sticker':c._l.content||''))):'No messages yet';
     const tm=c._l?ft(c._l.created_at):'';
     const act=cc?.id===c.id?'on':'';
     const unread=c._l&&c._l.sender_id&&c._l.sender_id!==me.id&&(!lr[c.id]||new Date(c._l.created_at)>new Date(lr[c.id]));
@@ -784,6 +839,19 @@ async function lM(cid){
   const uids=[...new Set(msgs.map(m=>m.sender_id).filter(Boolean))];
   let pm={};
   if(uids.length){const{data:ps}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').in('id',uids);(ps||[]).forEach(p=>pm[p.id]=p);}
+  const mids=msgs.map(m=>m.id);
+  let rxMap={};
+  if(mids.length){
+    const{data:rx}=await sb.from('lc_reactions').select('message_id,user_id,emoji').in('message_id',mids);
+    (rx||[]).forEach(r=>{
+      if(!rxMap[r.message_id])rxMap[r.message_id]={};
+      if(!rxMap[r.message_id][r.emoji])rxMap[r.message_id][r.emoji]={count:0,mine:false};
+      rxMap[r.message_id][r.emoji].count++;
+      if(r.user_id===me.id)rxMap[r.message_id][r.emoji].mine=true;
+    });
+  }
+  pinnedMsgs=msgs.filter(m=>m.pinned_at&&!m.deleted_for_everyone);
+  updatePinBar();
   let html='',ld='';
   msgs.forEach(msg=>{
     const mine=msg.sender_id===me.id;
@@ -793,33 +861,46 @@ async function lM(cid){
     const t=ft(msg.created_at);
     const ig=cc?.type==='group';
     if(msg.message_type==='system'){html+='<div class="mrow"><div class="mwrap" style="width:100%"><div class="bbl sys">'+esc(msg.content)+'</div></div></div>';return;}
+    const reactHtml=renderReactPills(msg.id,rxMap[msg.id]);
     if(msg.deleted_for_everyone){
       const delBbl='<div class="bbl '+(mine?'me':'th')+'" style="opacity:.6;font-style:italic;display:flex;align-items:center;gap:5px;">🚫 This message was deleted</div>';
-      html+=mine?('<div class="mrow me"><div class="mwrap">'+delBbl+'<div class="mt" style="text-align:right">'+t+'</div></div></div>'):
-        ((ig&&p?'<div class="msn">'+esc(nm(p))+'</div>':'')+'<div class="mrow">'+avH(p,24,'mav2')+'<div class="mwrap">'+delBbl+'<div class="mt">'+t+'</div></div></div>');
+      html+=mine?('<div class="mrow me" id="mrow-'+msg.id+'"><div class="mwrap">'+delBbl+'<div class="mt" style="text-align:right">'+t+'</div></div></div>'):
+        ((ig&&p?'<div class="msn">'+esc(nm(p))+'</div>':'')+'<div class="mrow" id="mrow-'+msg.id+'">'+avH(p,24,'mav2')+'<div class="mwrap">'+delBbl+'<div class="mt">'+t+'</div></div></div>');
       return;
     }
+    const isStk=msg.message_type==='sticker';
     const bc=msg.message_type==='image'&&msg.image_url?'<img src="'+esc(msg.image_url)+'" onclick="oIV(this.src)">'+(msg.content?'<br>'+esc(msg.content):''):esc(msg.content||'');
     const vo=msg.view_once&&msg.sender_id!==me.id&&msg.viewed;
     const voUnread=msg.view_once&&msg.sender_id!==me.id&&!msg.viewed;
-    const bblContent=voUnread?'<span style="cursor:pointer" data-vid="'+msg.id+'" onclick="viewOnce(this.dataset.vid,this)">👁 Tap to view once</span>':bc;
-    const actId='act_'+msg.id;
+    const bblContent=isStk?esc(msg.content||''):(voUnread?'<span style="cursor:pointer" data-vid="'+msg.id+'" onclick="viewOnce(this.dataset.vid,this)">👁 Tap to view once</span>':bc);
+    const bblCls='bbl '+(mine?'me':'th')+(isStk?' stk':'');
+    const pinned=msg.pinned_at?'📌 ':'';
     if(!mine){
-      html+=(ig&&p?'<div class="msn">'+esc(nm(p))+'</div>':'')+
-        '<div class="mrow">'+avH(p,24,'mav2')+
+      html+=(ig&&p?'<div class="msn">'+pinned+esc(nm(p))+'</div>':(pinned?'<div class="msn">📌 Pinned</div>':''))+
+        '<div class="mrow" id="mrow-'+msg.id+'">'+avH(p,24,'mav2')+
         '<div class="mwrap">'+
-        '<div class="bbl th" data-id="'+msg.id+'" data-content="'+esc(msg.content||'')+'" data-mine="0" oncontextmenu="showCtx(event,this)" ontouchstart="lpStart(event,this)" ontouchend="lpEnd()" ontouchmove="lpEnd()">'+(vo?'<span style="color:var(--t3);font-size:13px;">👁 Tap to view once</span>':bblContent)+'</div>'+
+        '<div class="'+bblCls+'" data-id="'+msg.id+'" data-content="'+esc(msg.content||'')+'" data-mine="0" data-type="'+msg.message_type+'" data-pinned="'+(msg.pinned_at?'1':'0')+'" oncontextmenu="showCtx(event,this)" ontouchstart="lpStart(event,this)" ontouchend="lpEnd()" ontouchmove="lpEnd()">'+(vo?'<span style="color:var(--t3);font-size:13px;">👁 Tap to view once</span>':bblContent)+'</div>'+
+        reactHtml+
         '<div class="mt">'+t+(msg.is_edited?'<span style="font-size:9px;color:var(--t3);"> edited</span>':'')+'</div>'+
         '</div></div>';
     }else{
-      html+='<div class="mrow me"><div class="mwrap">'+
-        '<div class="bbl me" data-id="'+msg.id+'" data-content="'+esc(msg.content||'')+'" data-mine="1" oncontextmenu="showCtx(event,this)" ontouchstart="lpStart(event,this)" ontouchend="lpEnd()" ontouchmove="lpEnd()">'+bblContent+'</div>'+
+      html+=(pinned?'<div class="msn" style="text-align:right">📌 Pinned</div>':'')+
+        '<div class="mrow me" id="mrow-'+msg.id+'"><div class="mwrap">'+
+        '<div class="'+bblCls+'" data-id="'+msg.id+'" data-content="'+esc(msg.content||'')+'" data-mine="1" data-type="'+msg.message_type+'" data-pinned="'+(msg.pinned_at?'1':'0')+'" oncontextmenu="showCtx(event,this)" ontouchstart="lpStart(event,this)" ontouchend="lpEnd()" ontouchmove="lpEnd()">'+bblContent+'</div>'+
+        reactHtml+
         '<div class="mt" style="text-align:right">'+t+(msg.is_edited?'<span style="font-size:9px;color:var(--t3);"> edited</span>':'')+'</div>'+
         '</div></div>';
     }
   });
   area.innerHTML=html;
   area.scrollTop=area.scrollHeight;
+}
+
+function renderReactPills(mid,obj){
+  if(!obj)return'';
+  const keys=Object.keys(obj);
+  if(!keys.length)return'';
+  return'<div class="reacts">'+keys.map(em=>'<span class="reactpill'+(obj[em].mine?' mine':'')+'" onclick="reactMsg(\''+mid+'\',\''+em+'\')">'+em+' '+obj[em].count+'</span>').join('')+'</div>';
 }
 
 // SEND MESSAGE
@@ -889,6 +970,7 @@ function goBack(){
   document.getElementById('cv').style.display='none';
   document.getElementById('emp').style.display='flex';
   document.getElementById('bnav').classList.add('show');
+  pinnedMsgs=[];
   cc=null;rC(cvs);
 }
 
@@ -905,9 +987,13 @@ function subRT(){
     if(pl.new.sender_id!==me.id){
       const{data:sender}=await sb.from('profiles').select('full_name,username').eq('id',pl.new.sender_id).maybeSingle();
       const senderName=sender?.full_name||sender?.username||'Someone';
-      const body=pl.new.message_type==='image'?'📷 Sent an image':(pl.new.content||'');
+      const body=pl.new.message_type==='image'?'📷 Sent an image':(pl.new.message_type==='sticker'?'Sent a sticker '+pl.new.content:(pl.new.content||''));
       sendNotification('💬 '+senderName,body);
     }
+  }).on('postgres_changes',{event:'UPDATE',schema:'public',table:'lc_messages'},async(pl)=>{
+    if(cc&&pl.new.conversation_id===cc.id)await lM(cc.id);
+  }).on('postgres_changes',{event:'*',schema:'public',table:'lc_reactions'},async(pl)=>{
+    if(cc)await lM(cc.id);
   }).subscribe();
 }
 
@@ -1161,14 +1247,16 @@ function lpStart(e,el){
 function lpEnd(){clearTimeout(lpTimer);}
 function showCtx(e,el){
   e.preventDefault();
-  ctxMsg={id:el.dataset.id,content:el.dataset.content,mine:el.dataset.mine==='1'};
+  ctxMsg={id:el.dataset.id,content:el.dataset.content,mine:el.dataset.mine==='1',type:el.dataset.type,pinned:el.dataset.pinned};
   const menu=document.getElementById('ctxmenu');
   const edit=document.getElementById('ctx-edit');
   const del=document.getElementById('ctx-del');
   const div=document.getElementById('ctx-divider');
-  edit.style.display=ctxMsg.mine?'flex':'none';
+  const pinBtn=document.getElementById('ctx-pin');
+  edit.style.display=(ctxMsg.mine&&ctxMsg.type!=='sticker')?'flex':'none';
   del.style.display=ctxMsg.mine?'flex':'none';
   div.style.display=ctxMsg.mine?'block':'none';
+  if(pinBtn)pinBtn.textContent=ctxMsg.pinned==='1'?'📌 Unpin':'📌 Pin';
   const x=Math.min(e.clientX||e.touches?.[0]?.clientX||100, window.innerWidth-170);
   const y=Math.min(e.clientY||e.touches?.[0]?.clientY||100, window.innerHeight-160);
   menu.style.left=x+'px';
@@ -1206,6 +1294,72 @@ async function ctxDel(){
   if(!confirm('Delete this message for everyone?'))return;
   const{error}=await sb.from('lc_messages').update({deleted_for_everyone:true,content:'',image_url:null}).eq('id',ctxMsg.id).eq('sender_id',me.id);
   if(error){alert('Error: '+error.message);return;}
+  await lM(cc.id);loadC();
+}
+
+// ── REACTIONS ──
+async function reactMsg(mid,emoji){
+  document.getElementById('ctxmenu').style.display='none';
+  if(!me||!cc)return;
+  const{data:existing}=await sb.from('lc_reactions').select('id,emoji').eq('message_id',mid).eq('user_id',me.id).maybeSingle();
+  if(existing&&existing.emoji===emoji){
+    await sb.from('lc_reactions').delete().eq('id',existing.id);
+  }else if(existing){
+    await sb.from('lc_reactions').update({emoji}).eq('id',existing.id);
+  }else{
+    await sb.from('lc_reactions').insert({message_id:mid,user_id:me.id,emoji}).catch(()=>{});
+  }
+  await lM(cc.id);
+}
+
+// ── PINNED MESSAGES ──
+async function ctxPin(){
+  document.getElementById('ctxmenu').style.display='none';
+  if(!ctxMsg||!cc)return;
+  const isPinned=ctxMsg.pinned==='1';
+  await sb.from('lc_messages').update({pinned_at:isPinned?null:new Date().toISOString()}).eq('id',ctxMsg.id);
+  await lM(cc.id);
+}
+function updatePinBar(){
+  const bar=document.getElementById('pinbar');
+  if(!bar)return;
+  if(!pinnedMsgs.length){bar.style.display='none';return;}
+  const last=pinnedMsgs[pinnedMsgs.length-1];
+  const preview=last.message_type==='image'?'📷 Photo':(last.message_type==='sticker'?last.content+' Sticker':(last.content||''));
+  bar.style.display='flex';
+  bar.innerHTML='📌 <div class="pbtxt">'+esc(preview.substring(0,50))+'</div>'+(pinnedMsgs.length>1?'<span>+'+(pinnedMsgs.length-1)+'</span>':'');
+}
+function showPinnedList(){
+  const list=document.getElementById('pinl');
+  if(!pinnedMsgs.length){list.innerHTML='<p style="color:var(--t3);font-size:12px;padding:7px;">No pinned messages.</p>';}
+  else{
+    list.innerHTML=pinnedMsgs.slice().reverse().map(m=>{
+      const preview=m.message_type==='image'?'📷 Photo':(m.message_type==='sticker'?m.content+' Sticker':esc((m.content||'').substring(0,60)));
+      return'<div class="ui" onclick="scrollToMsg(\''+m.id+'\')"><div style="flex:1"><div class="uin">'+preview+'</div><div class="uis">'+ft(m.created_at)+'</div></div></div>';
+    }).join('');
+  }
+  document.getElementById('pinmod').classList.add('show');history.pushState(null,'',window.location.href);
+}
+function closePinnedList(){document.getElementById('pinmod').classList.remove('show');}
+function scrollToMsg(mid){
+  closePinnedList();
+  const el=document.getElementById('mrow-'+mid);
+  if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.transition='background .3s';el.style.background='var(--glow)';setTimeout(()=>{el.style.background='';},1200);}
+}
+
+// ── STICKERS ──
+function oStk(){buildStickerPicker();document.getElementById('stkmod').classList.add('show');history.pushState(null,'',window.location.href);}
+function cStk(){document.getElementById('stkmod').classList.remove('show');}
+function buildStickerPicker(){
+  document.getElementById('stkTabs').innerHTML=STICKERS.map((c,i)=>'<button class="stktab'+(i===stkCat?' on':'')+'" onclick="selStkCat('+i+')">'+c.n+'</button>').join('');
+  document.getElementById('stkGrid').innerHTML=STICKERS[stkCat].e.map(em=>'<div class="stkitem" onclick="sendSticker(\''+em+'\')">'+em+'</div>').join('');
+}
+function selStkCat(i){stkCat=i;buildStickerPicker();}
+async function sendSticker(emoji){
+  if(!cc)return;
+  cStk();
+  await sb.from('lc_messages').insert({conversation_id:cc.id,sender_id:me.id,content:emoji,message_type:'sticker'});
+  await sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',cc.id);
   await lM(cc.id);loadC();
 }
 
@@ -1378,7 +1532,7 @@ async function submitCreator(){
 
 // Intercept browser back button
 window.addEventListener('popstate', function(e){
-  const modals=['vipmod','mpmod','pvmod','sgmod','gsmod','gmod','dmod'];
+  const modals=['vipmod','mpmod','pvmod','sgmod','gsmod','gmod','dmod','pinmod','stkmod'];
   for(const id of modals){
     const m=document.getElementById(id);
     if(m&&m.classList.contains('show')){
