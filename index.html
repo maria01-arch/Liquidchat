@@ -1301,14 +1301,17 @@ async function ctxDel(){
 async function reactMsg(mid,emoji){
   document.getElementById('ctxmenu').style.display='none';
   if(!me||!cc)return;
-  const{data:existing}=await sb.from('lc_reactions').select('id,emoji').eq('message_id',mid).eq('user_id',me.id).maybeSingle();
+  const{data:existing,error:selErr}=await sb.from('lc_reactions').select('id,emoji').eq('message_id',mid).eq('user_id',me.id).maybeSingle();
+  if(selErr){alert('Reaction error: '+selErr.message);return;}
+  let error=null;
   if(existing&&existing.emoji===emoji){
-    await sb.from('lc_reactions').delete().eq('id',existing.id);
+    ({error}=await sb.from('lc_reactions').delete().eq('id',existing.id));
   }else if(existing){
-    await sb.from('lc_reactions').update({emoji}).eq('id',existing.id);
+    ({error}=await sb.from('lc_reactions').update({emoji}).eq('id',existing.id));
   }else{
-    await sb.from('lc_reactions').insert({message_id:mid,user_id:me.id,emoji}).catch(()=>{});
+    ({error}=await sb.from('lc_reactions').insert({message_id:mid,user_id:me.id,emoji}));
   }
+  if(error){alert('Reaction error: '+error.message);return;}
   await lM(cc.id);
 }
 
@@ -1358,7 +1361,8 @@ function selStkCat(i){stkCat=i;buildStickerPicker();}
 async function sendSticker(emoji){
   if(!cc)return;
   cStk();
-  await sb.from('lc_messages').insert({conversation_id:cc.id,sender_id:me.id,content:emoji,message_type:'sticker'});
+  const{error}=await sb.from('lc_messages').insert({conversation_id:cc.id,sender_id:me.id,content:emoji,message_type:'sticker'});
+  if(error){alert('Sticker error: '+error.message);return;}
   await sb.from('lc_conversations').update({updated_at:new Date().toISOString()}).eq('id',cc.id);
   await lM(cc.id);loadC();
 }
