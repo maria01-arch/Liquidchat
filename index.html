@@ -429,6 +429,9 @@ textarea.ti2::placeholder{color:var(--t3);}
       <button class="mb p" onclick="oDep()" style="margin:0;">⬇️ Deposit</button>
       <button class="mb s" onclick="oWd()" style="margin:0;">⬆️ Withdraw</button>
     </div>
+    <div style="margin-bottom:18px;">
+      <button class="mb p" onclick="oSend()" style="margin:0;width:100%;background:linear-gradient(135deg,#43e97b,#2196f3);">💸 Send to a LiquidChat User</button>
+    </div>
     <div class="sl">Transaction History</div>
     <div id="walHist" style="display:flex;flex-direction:column;gap:8px;"></div>
   </div>
@@ -580,7 +583,7 @@ textarea.ti2::placeholder{color:var(--t3);}
     <div class="lbl">Amount (USD)</div>
     <input type="number" id="depamt" placeholder="e.g. 50" min="1" step="0.01">
     <div class="lbl">Pay With</div>
-    <select id="depmethod" onchange="updateDepAddr()"><option value="BTC">Bitcoin (BTC)</option><option value="USDT">USDT TRC-20</option><option value="ETH">Ethereum (ETH)</option></select>
+    <select id="depmethod" onchange="updateDepAddr()"><option value="BTC">Bitcoin (BTC)</option><option value="ETH">Ethereum (ETH)</option><option value="USDT_TRC20">USDT (TRC-20)</option><option value="USDT_BEP20">USDT (BEP-20)</option><option value="XRP">Ripple (XRP)</option></select>
     <div id="depaddr" style="background:var(--s2);border-radius:9px;padding:10px;margin-bottom:12px;font-size:11px;word-break:break-all;cursor:pointer;color:var(--tx);" onclick="copyAddr(this)"></div>
     <div class="lbl">Transaction ID</div>
     <input type="text" id="deptx" placeholder="Enter transaction ID...">
@@ -599,13 +602,28 @@ textarea.ti2::placeholder{color:var(--t3);}
     <div class="lbl">Amount (USD)</div>
     <input type="number" id="wdamt" placeholder="e.g. 20" min="1" step="0.01">
     <div class="lbl">Withdraw Via</div>
-    <select id="wdmethod"><option value="BTC">Bitcoin (BTC)</option><option value="USDT">USDT TRC-20</option><option value="ETH">Ethereum (ETH)</option></select>
+    <select id="wdmethod"><option value="BTC">Bitcoin (BTC)</option><option value="ETH">Ethereum (ETH)</option><option value="USDT_TRC20">USDT (TRC-20)</option><option value="USDT_BEP20">USDT (BEP-20)</option><option value="XRP">Ripple (XRP)</option></select>
     <div class="lbl">Your Wallet Address</div>
     <input type="text" id="wdaddr" placeholder="Paste your receiving address...">
     <div style="background:rgba(255,79,106,.08);border:1px solid rgba(255,79,106,.3);border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--t2);line-height:1.6;">
       Withdrawals are processed within 24 hours. Double-check your address — transactions can't be reversed.
     </div>
     <div class="macts"><button class="mb s" onclick="cWd()">Cancel</button><button class="mb p" onclick="submitWithdraw()">Request Withdrawal</button></div>
+  </div>
+</div>
+
+<!-- SEND TO USER MODAL -->
+<div class="ov" id="sendmod">
+  <div class="mod">
+    <h3>💸 Send Funds</h3>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:10px;">Available balance: <b id="sendAvail" style="color:var(--tx);">$0.00</b></div>
+    <div class="lbl">Recipient (name or LC-ID)</div>
+    <input type="text" id="sends" placeholder="Search name or LC-000000..." oninput="sSendU()">
+    <div class="ulist" id="sendl"></div>
+    <div id="sendSelected" style="display:none;background:var(--glow);border:1px solid var(--ac);border-radius:9px;padding:8px 10px;margin-bottom:10px;font-size:13px;"></div>
+    <div class="lbl">Amount (USD)</div>
+    <input type="number" id="sendamt" placeholder="e.g. 10" min="1" step="0.01">
+    <div class="macts"><button class="mb s" onclick="cSend()">Cancel</button><button class="mb p" onclick="submitSend()">Send</button></div>
   </div>
 </div>
 
@@ -899,8 +917,8 @@ function msgHtml(msg,p,rxObj,ig){
   const pinned=msg.pinned_at?'📌 ':'';
   let inner;
   if(!mine){
-    inner=(ig&&p?'<div class="msn">'+pinned+esc(nm(p))+'</div>':(pinned?'<div class="msn">📌 Pinned</div>':''))+
-      '<div class="mrow" id="mrow-'+msg.id+'">'+avH(p,24,'mav2')+
+    inner=(ig&&p?'<div class="msn" style="cursor:pointer" onclick="viewSenderProfile(\''+msg.sender_id+'\')">'+pinned+esc(nm(p))+'</div>':(pinned?'<div class="msn">📌 Pinned</div>':''))+
+      '<div class="mrow" id="mrow-'+msg.id+'"><div onclick="viewSenderProfile(\''+msg.sender_id+'\')" style="cursor:pointer">'+avH(p,24,'mav2')+'</div>'+
       '<div class="mwrap">'+
       '<div class="'+bblCls+'" data-id="'+msg.id+'" data-content="'+esc(msg.content||'')+'" data-mine="0" data-type="'+msg.message_type+'" data-pinned="'+(msg.pinned_at?'1':'0')+'" oncontextmenu="showCtx(event,this)" ontouchstart="lpStart(event,this)" ontouchend="lpEnd()" ontouchmove="lpEnd()">'+(vo?'<span style="color:var(--t3);font-size:13px;">👁 Tap to view once</span>':bblContent)+'</div>'+
       reactHtml+
@@ -924,7 +942,17 @@ async function lM(cid){
   if(error){area.innerHTML='<p style="text-align:center;color:var(--t3);padding:20px;font-size:13px;">'+error.message+'</p>';return;}
   if(!msgs?.length){area.innerHTML='<p style="text-align:center;color:var(--t3);padding:20px;font-size:13px;">No messages yet. Say hello! 👋</p>';return;}
   const uids=[...new Set(msgs.map(m=>m.sender_id).filter(Boolean))];
-  if(uids.length){const{data:ps}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').in('id',uids);(ps||[]).forEach(p=>pCache[p.id]=p);}
+  if(uids.length){
+    const{data:ps}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').in('id',uids);
+    (ps||[]).forEach(p=>pCache[p.id]=p);
+    const missing=uids.filter(u=>!pCache[u]);
+    if(missing.length){
+      await Promise.all(missing.map(async u=>{
+        const{data:pp}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').eq('id',u).maybeSingle();
+        if(pp)pCache[pp.id]=pp;
+      }));
+    }
+  }
   const mids=msgs.map(m=>m.id);
   let rxMap={};
   if(mids.length){
@@ -1268,12 +1296,13 @@ async function hIL(){
 }
 
 // PROFILE
-function vOP(){if(!cc||cc.type!=='direct'||!cc._o)return;vu=cc._o;shP(cc._o,true);}
+function vOP(){if(!cc||cc.type!=='direct'||!cc._o)return;shP(cc._o,true);}
 function shP(p,showMsg){
+  vu=p;
   document.getElementById('pvc').innerHTML='<div class="pcard">'+
     (p?.avatar_url?'<div class="pav"><img src="'+esc(p.avatar_url)+'"></div>':'<div class="pav" style="background:'+(p?.avatar_color||'#6c63ff')+'">'+((nm(p)||'?').slice(0,2).toUpperCase())+'</div>')+
     '<div class="pn">'+esc(nm(p))+(p?.is_vip?' <span class="vip">★ VIP</span>':'')+'</div>'+
-    '<div class="pid">'+esc(p?.liquid_id||'')+'</div>'+
+    '<div class="pid" style="display:flex;align-items:center;justify-content:center;gap:6px;">'+esc(p?.liquid_id||'')+(p?.liquid_id?'<button onclick="copyText(\''+esc(p.liquid_id)+'\')" style="background:none;border:none;color:var(--ac);cursor:pointer;font-size:12px;">📋</button>':'')+'</div>'+
     '<div style="font-size:11px;margin-top:4px;color:'+(isOnline(p)?'#3ddc84':'var(--t3)')+';">'+lastSeenText(p)+'</div>'+
     (p?.bio?'<div class="pf"><div class="pfl">Bio</div><div class="pfv">'+esc(p.bio)+'</div></div>':'')+
     (p?.work?'<div class="pf"><div class="pfl">Work</div><div class="pfv">'+esc(p.work)+'</div></div>':'')+
@@ -1281,10 +1310,21 @@ function shP(p,showMsg){
     (p?.country?'<div class="pf"><div class="pfl">Country</div><div class="pfv">'+esc(p.country)+'</div></div>':'')+
     '</div>';
   document.getElementById('pmb').style.display=showMsg?'block':'none';
-  document.getElementById('pvmod').classList.add('show');
+  document.getElementById('pvmod').classList.add('show');history.pushState(null,'',window.location.href);
 }
 function cPV(){document.getElementById('pvmod').classList.remove('show');vu=null;}
 async function mFP(){if(!vu)return;sdmu=vu;cPV();await stDM();}
+function copyText(text){
+  navigator.clipboard.writeText(text).then(()=>alert('Copied!')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);alert('Copied!');
+  });
+}
+async function viewSenderProfile(uid){
+  if(!uid)return;
+  const p=await ensureProfile(uid);
+  shP(p,uid!==me.id);
+}
 
 function oMP(){
   if(!mp)return;
@@ -1568,8 +1608,10 @@ function closeIV(){document.getElementById('iv').style.display='none';}
 // ── WALLET ──
 const CRYPTO_ADDR={
   BTC:'bc1ql7qzefrh2czl29krzzsnwkr6dvnp2few2h80s7',
-  USDT:'TABFK9Z3yC4kKtVzqEwqoyAfwSySkzJcHL',
-  ETH:'0x793511cc61F026A53b7a8F1F0352227f804dB69C'
+  ETH:'0x793511cc61F026A53b7a8F1F0352227f804dB69C',
+  USDT_TRC20:'TABFK9Z3yC4kKtVzqEwqoyAfwSySkzJcHL',
+  USDT_BEP20:'0x793511cc61F026A53b7a8F1F0352227f804dB69C',
+  XRP:'rDQEzjjA1nXTecWwAoWgGDRUKbWAcxMDva'
 };
 async function loadWallet(){
   if(!me)return;
@@ -1581,12 +1623,14 @@ async function loadWallet(){
   const hist=document.getElementById('walHist');
   if(!txs?.length){hist.innerHTML='<p style="color:var(--t3);font-size:12px;padding:10px 0;text-align:center;">No transactions yet.</p>';return;}
   hist.innerHTML=txs.map(t=>{
-    const isDep=t.type==='deposit';
+    const isCredit=t.type==='deposit'||t.type==='transfer_in';
+    const icons={deposit:'⬇️',withdraw:'⬆️',transfer_in:'💸',transfer_out:'💸'};
+    const labels={deposit:'Deposit',withdraw:'Withdraw',transfer_in:'Received from '+(t.method||'user'),transfer_out:'Sent to '+(t.destination||'user')};
     const statusColor=t.status==='completed'?'#3ddc84':(t.status==='rejected'?'var(--red)':'#ffc107');
     return'<div style="display:flex;align-items:center;gap:10px;background:var(--s2);border-radius:10px;padding:10px 12px;">'+
-      '<div style="font-size:20px;">'+(isDep?'⬇️':'⬆️')+'</div>'+
-      '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">'+(isDep?'Deposit':'Withdraw')+' · '+(t.method||'')+'</div><div style="font-size:11px;color:var(--t3);">'+ft(t.created_at)+'</div></div>'+
-      '<div style="text-align:right;"><div style="font-size:14px;font-weight:700;">'+(isDep?'+':'-')+'$'+Number(t.amount).toFixed(2)+'</div><div style="font-size:10px;color:'+statusColor+';text-transform:capitalize;">'+t.status+'</div></div>'+
+      '<div style="font-size:20px;">'+(icons[t.type]||'💰')+'</div>'+
+      '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">'+esc(labels[t.type]||t.type)+(t.method&&t.type!=='transfer_in'?' · '+t.method:'')+'</div><div style="font-size:11px;color:var(--t3);">'+ft(t.created_at)+'</div></div>'+
+      '<div style="text-align:right;"><div style="font-size:14px;font-weight:700;">'+(isCredit?'+':'-')+'$'+Number(t.amount).toFixed(2)+'</div><div style="font-size:10px;color:'+statusColor+';text-transform:capitalize;">'+t.status+'</div></div>'+
       '</div>';
   }).join('');
 }
@@ -1634,6 +1678,60 @@ async function submitWithdraw(){
   if(mp)mp.balance=newBal;
   alert('✅ Withdrawal request submitted!\n\nFunds will be sent to your address within 24 hours.');
   cWd();loadWallet();
+}
+
+// ── SEND TO USER ──
+let sendTarget=null,sendr=[];
+function oSend(){
+  sendTarget=null;sendr=[];
+  document.getElementById('sends').value='';
+  document.getElementById('sendl').innerHTML='';
+  document.getElementById('sendamt').value='';
+  document.getElementById('sendSelected').style.display='none';
+  document.getElementById('sendAvail').textContent='$'+Number(mp?.balance||0).toFixed(2);
+  document.getElementById('sendmod').classList.add('show');history.pushState(null,'',window.location.href);
+}
+function cSend(){document.getElementById('sendmod').classList.remove('show');}
+async function sSendU(){
+  const q=document.getElementById('sends').value.trim();
+  if(!q){document.getElementById('sendl').innerHTML='';return;}
+  const{data:us}=await sb.from('profiles').select('*').neq('id',me.id).or('full_name.ilike.%'+q+'%,username.ilike.%'+q+'%,liquid_id.ilike.%'+q+'%').limit(10);
+  sendr=us||[];
+  const list=document.getElementById('sendl');
+  if(!sendr.length){list.innerHTML='<p style="color:var(--t3);font-size:12px;padding:7px;">No users found.</p>';return;}
+  list.innerHTML=sendr.map((u,i)=>'<div class="ui" data-i="'+i+'" onclick="selSendU(sendr[this.dataset.i])">'+avH(u,32,'uiav')+'<div><div class="uin">'+esc(nm(u))+'</div><div class="uis">'+esc(u.liquid_id||'')+'</div></div></div>').join('');
+}
+function selSendU(u){
+  sendTarget=u;
+  document.getElementById('sends').value='';
+  document.getElementById('sendl').innerHTML='';
+  const sel=document.getElementById('sendSelected');
+  sel.style.display='block';
+  sel.innerHTML='Sending to: <b>'+esc(nm(u))+'</b> ('+esc(u.liquid_id||'')+')';
+}
+async function submitSend(){
+  if(!sendTarget){alert('Please select a recipient.');return;}
+  const amt=parseFloat(document.getElementById('sendamt').value);
+  const bal=Number(mp?.balance||0);
+  if(!amt||amt<=0){alert('Please enter a valid amount.');return;}
+  if(amt>bal){alert('Insufficient balance.');return;}
+  if(sendTarget.id===me.id){alert('You cannot send funds to yourself.');return;}
+  const{data:recipProf,error:rErr}=await sb.from('profiles').select('balance').eq('id',sendTarget.id).maybeSingle();
+  if(rErr){alert('Error: '+rErr.message);return;}
+  const recipBal=Number(recipProf?.balance||0);
+  const newSenderBal=bal-amt;
+  const newRecipBal=recipBal+amt;
+  const{error:e1}=await sb.from('profiles').update({balance:newSenderBal}).eq('id',me.id);
+  if(e1){alert('Error: '+e1.message);return;}
+  const{error:e2}=await sb.from('profiles').update({balance:newRecipBal}).eq('id',sendTarget.id);
+  if(e2){await sb.from('profiles').update({balance:bal}).eq('id',me.id);alert('Error: '+e2.message);return;}
+  await sb.from('wallet_transactions').insert([
+    {user_id:me.id,type:'transfer_out',amount:amt,destination:sendTarget.liquid_id||sendTarget.id,status:'completed'},
+    {user_id:sendTarget.id,type:'transfer_in',amount:amt,method:mp?.liquid_id||'',status:'completed'}
+  ]);
+  if(mp)mp.balance=newSenderBal;
+  alert('✅ Sent $'+amt.toFixed(2)+' to '+nm(sendTarget)+'!');
+  cSend();loadWallet();
 }
 
 // ── NAVIGATION ──
@@ -1708,7 +1806,7 @@ async function submitCreator(){
 
 // Intercept browser back button
 window.addEventListener('popstate', function(e){
-  const modals=['vipmod','mpmod','pvmod','sgmod','gsmod','gmod','dmod','pinmod','stkmod','depmod','wdmod'];
+  const modals=['vipmod','mpmod','pvmod','sgmod','gsmod','gmod','dmod','pinmod','stkmod','depmod','wdmod','sendmod'];
   for(const id of modals){
     const m=document.getElementById(id);
     if(m&&m.classList.contains('show')){
