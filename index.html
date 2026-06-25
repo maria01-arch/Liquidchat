@@ -338,9 +338,9 @@ textarea.ti2::placeholder{color:var(--t3);}
       <div class="msgs" id="msgs"></div>
       <div class="ibar">
         <button id="vobtn" onclick="toggleVO()" style="padding:8px;background:none;border:1px solid var(--bd);border-radius:8px;color:var(--t2);font-size:18px;cursor:pointer;flex-shrink:0;line-height:1;" title="View Once OFF">👁</button>
+        <button type="button" onclick="oStk()" style="padding:8px;background:none;border:1px solid var(--bd);border-radius:8px;color:var(--t2);font-size:18px;cursor:pointer;flex-shrink:0;line-height:1;">😊</button>
         <div class="iw">
           <textarea class="ti2" id="mta" placeholder="Write a message..." rows="1" onkeydown="hK(event)" oninput="aR(this)"></textarea>
-          <button type="button" class="imgb" onclick="oStk()" style="border:none;background:none;">😊</button>
           <label class="imgb" for="imgf" onclick="captureVOState()">📎</label>
           <input type="file" id="imgf" accept="image/*" onchange="sImgVO(this)">
         </div>
@@ -946,12 +946,7 @@ async function lM(cid){
     const{data:ps}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').in('id',uids);
     (ps||[]).forEach(p=>pCache[p.id]=p);
     const missing=uids.filter(u=>!pCache[u]);
-    if(missing.length){
-      await Promise.all(missing.map(async u=>{
-        const{data:pp}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').eq('id',u).maybeSingle();
-        if(pp)pCache[pp.id]=pp;
-      }));
-    }
+    if(missing.length){await Promise.all(missing.map(u=>ensureProfile(u)));}
   }
   const mids=msgs.map(m=>m.id);
   let rxMap={};
@@ -980,7 +975,14 @@ async function lM(cid){
 async function ensureProfile(uid){
   if(!uid)return null;
   if(pCache[uid])return pCache[uid];
-  const{data:pp}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').eq('id',uid).maybeSingle();
+  let{data:pp}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').eq('id',uid).maybeSingle();
+  if(!pp){
+    const lid='LC-'+Math.floor(100000+Math.random()*900000);
+    const cols=['#6c63ff','#ff6b81','#43e97b','#f7971e','#2196f3','#e91e63'];
+    const fallback={id:uid,liquid_id:lid,avatar_color:cols[Math.floor(Math.random()*cols.length)]};
+    const{data:created}=await sb.from('profiles').insert(fallback).select().maybeSingle().catch(()=>({data:null}));
+    pp=created||fallback;
+  }
   if(pp)pCache[pp.id]=pp;
   return pp||null;
 }
