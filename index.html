@@ -194,6 +194,16 @@ textarea.ti2::placeholder{color:var(--t3);}
 .stkitem:hover{background:var(--glow);}
 .bbl.stk{background:none!important;padding:2px!important;font-size:54px;line-height:1;}
 
+/* MEDIA FEED */
+.medcard{background:var(--s1);border:1px solid var(--bd);border-radius:14px;margin-bottom:16px;overflow:hidden;}
+.medhead{display:flex;align-items:center;gap:9px;padding:10px 12px;cursor:pointer;}
+.medbody{position:relative;background:var(--s2);min-height:220px;display:flex;align-items:center;justify-content:center;}
+.medbody img,.medbody video{width:100%;display:block;max-height:480px;object-fit:cover;}
+.medlock{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#fff;text-align:center;padding:20px;}
+.medlock .li{font-size:34px;}
+.medcap{padding:10px 12px;font-size:13px;color:var(--tx);}
+.medprice{font-size:11px;background:var(--glow);color:var(--ac);border-radius:20px;padding:2px 9px;font-weight:700;}
+
 /* OVERLAY & MODAL */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;z-index:100;backdrop-filter:blur(4px);overflow-y:auto;padding:16px;}
 .ov.show{display:flex;align-items:flex-start;justify-content:center;}
@@ -407,8 +417,8 @@ textarea.ti2::placeholder{color:var(--t3);}
 
 <!-- MEDIA PAGE -->
 <div class="page" id="page-media">
-  <div class="pgh"><h2>🎬 Media</h2></div>
-  <div class="coming"><div class="ci2">🎬</div><h3>Coming Soon</h3><p>Locked content feed. Pay to view or subscribe to creators.</p></div>
+  <div class="pgh"><h2>🎬 Media</h2><div class="hb" id="mediaUploadBtn" style="display:none" onclick="oUpload()">➕</div></div>
+  <div class="pgb" id="mediaFeed" style="padding:12px;"></div>
 </div>
 
 <!-- SUBSCRIBED PAGE -->
@@ -573,6 +583,21 @@ textarea.ti2::placeholder{color:var(--t3);}
     <div class="lbl">Country</div><input type="text" id="mpc">
     <div style="margin-top:6px;"><button onclick="oVIP()" style="width:100%;padding:12px;border-radius:9px;border:none;background:linear-gradient(135deg,#ffc107,#ff8c00);color:#000;font-size:13px;font-weight:700;cursor:pointer;" id="vipbtn">⭐ Upgrade to VIP</button></div>
     <div class="macts"><button class="mb s" onclick="cMP()">Cancel</button><button class="mb p" onclick="svMP()">Save</button></div>
+  </div>
+</div>
+
+<!-- MEDIA UPLOAD MODAL -->
+<div class="ov" id="uploadmod">
+  <div class="mod">
+    <h3>🎬 New Post</h3>
+    <label style="background:var(--s2);border:1px dashed var(--ac);border-radius:9px;padding:14px;color:var(--ac);font-size:13px;cursor:pointer;display:block;text-align:center;margin-bottom:12px;" for="medfile">📷 Choose Photo or Video</label>
+    <input type="file" id="medfile" accept="image/*,video/*" style="display:none" onchange="previewMedia(this)">
+    <div id="medPreview" style="margin-bottom:12px;"></div>
+    <div class="lbl">Caption</div>
+    <input type="text" id="medcap" placeholder="Write a caption...">
+    <div class="lbl">Price to Unlock (USD) — 0 for free</div>
+    <input type="number" id="medprice" placeholder="0" min="0" step="0.01">
+    <div class="macts"><button class="mb s" onclick="cUpload()">Cancel</button><button class="mb p" onclick="submitMedia()">Post</button></div>
   </div>
 </div>
 
@@ -1746,6 +1771,90 @@ async function submitSend(){
   cSend();loadWallet();
 }
 
+// ── MEDIA FEED ──
+let purchasedSet=new Set(),pendingMedFile=null,pendingMedType='image';
+function checkCreatorBtn(){
+  const btn=document.getElementById('mediaUploadBtn');
+  if(btn)btn.style.display=mp?.is_creator?'flex':'none';
+}
+async function loadMediaFeed(){
+  checkCreatorBtn();
+  const feed=document.getElementById('mediaFeed');
+  feed.innerHTML='<div class="ld"><span></span><span></span><span></span></div>';
+  const{data:items,error}=await sb.from('lc_media').select('*').order('created_at',{ascending:false}).limit(40);
+  if(error){feed.innerHTML='<p style="text-align:center;color:var(--t3);padding:20px;font-size:13px;">'+error.message+'</p>';return;}
+  if(!items?.length){feed.innerHTML='<div class="coming"><div class="ci2">🎬</div><h3>No posts yet</h3><p>Approved creators can post locked content here.</p></div>';return;}
+  const{data:purchases}=await sb.from('lc_media_purchases').select('media_id').eq('buyer_id',me.id);
+  purchasedSet=new Set((purchases||[]).map(p=>p.media_id));
+  const creatorIds=[...new Set(items.map(i=>i.creator_id))];
+  await Promise.all(creatorIds.map(uid=>ensureProfile(uid)));
+  feed.innerHTML=items.map(m=>renderMediaCard(m)).join('');
+}
+function renderMediaCard(m){
+  const p=pCache[m.creator_id]||null;
+  const unlocked=m.creator_id===me.id||Number(m.price||0)<=0||purchasedSet.has(m.id);
+  const mediaTag=m.media_type==='video'?'<video src="'+esc(m.media_url)+'" '+(unlocked?'controls':'')+' playsinline></video>':'<img src="'+esc(m.media_url)+'" '+(unlocked?'onclick="oIV(this.src)"':'')+'>';
+  return'<div class="medcard">'+
+    '<div class="medhead" onclick="viewSenderProfile(\''+m.creator_id+'\')">'+avH(p,32,'uiav')+'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;">'+esc(nm(p))+'</div><div style="font-size:10px;color:var(--t3);">'+ft(m.created_at)+'</div></div>'+(!unlocked?'<span class="medprice">$'+Number(m.price).toFixed(2)+'</span>':'')+'</div>'+
+    '<div class="medbody">'+mediaTag+(!unlocked?'<div class="medlock"><div class="li">🔒</div><div style="font-weight:700;">Locked Content</div><div style="font-size:12px;opacity:.8;">Pay $'+Number(m.price).toFixed(2)+' to unlock</div><button class="mb p" style="margin-top:4px;width:auto;padding:9px 22px;" onclick="unlockMedia(\''+m.id+'\','+m.price+',\''+m.creator_id+'\')">🔓 Unlock</button></div>':'')+'</div>'+
+    (m.caption?'<div class="medcap">'+esc(m.caption)+'</div>':'')+
+    '</div>';
+}
+async function unlockMedia(mediaId,price,creatorId){
+  price=Number(price);
+  const bal=Number(mp?.balance||0);
+  if(price>bal){alert('Insufficient balance. Please deposit or top up your wallet first.');return;}
+  if(!confirm('Unlock this content for $'+price.toFixed(2)+'?'))return;
+  const{data:creatorProf,error:cErr}=await sb.from('profiles').select('balance').eq('id',creatorId).maybeSingle();
+  if(cErr){alert('Error: '+cErr.message);return;}
+  const creatorBal=Number(creatorProf?.balance||0);
+  const{error:e1}=await sb.from('profiles').update({balance:bal-price}).eq('id',me.id);
+  if(e1){alert('Error: '+e1.message);return;}
+  const{error:e2}=await sb.from('profiles').update({balance:creatorBal+price}).eq('id',creatorId);
+  if(e2){await sb.from('profiles').update({balance:bal}).eq('id',me.id);alert('Error: '+e2.message);return;}
+  const{error:e3}=await sb.from('lc_media_purchases').insert({media_id:mediaId,buyer_id:me.id,amount:price});
+  if(e3){alert('Error: '+e3.message);return;}
+  await sb.from('wallet_transactions').insert([
+    {user_id:me.id,type:'transfer_out',amount:price,destination:'media unlock',status:'completed'},
+    {user_id:creatorId,type:'transfer_in',amount:price,method:'media sale',status:'completed'}
+  ]);
+  if(mp)mp.balance=bal-price;
+  purchasedSet.add(mediaId);
+  await loadMediaFeed();
+}
+function oUpload(){
+  if(!mp?.is_creator){alert('⭐ Posting requires creator approval. Apply via the menu → Apply for Creator.');return;}
+  pendingMedFile=null;pendingMedType='image';
+  document.getElementById('medfile').value='';
+  document.getElementById('medPreview').innerHTML='';
+  document.getElementById('medcap').value='';
+  document.getElementById('medprice').value='';
+  document.getElementById('uploadmod').classList.add('show');history.pushState(null,'',window.location.href);
+}
+function cUpload(){document.getElementById('uploadmod').classList.remove('show');}
+function previewMedia(inp){
+  const f=inp.files[0];if(!f)return;
+  pendingMedFile=f;
+  pendingMedType=f.type.startsWith('video')?'video':'image';
+  const url=URL.createObjectURL(f);
+  document.getElementById('medPreview').innerHTML=pendingMedType==='video'?'<video src="'+url+'" controls style="width:100%;border-radius:9px;max-height:240px;"></video>':'<img src="'+url+'" style="width:100%;border-radius:9px;max-height:240px;object-fit:cover;">';
+}
+async function submitMedia(){
+  if(!pendingMedFile){alert('Please choose a photo or video.');return;}
+  const cap=document.getElementById('medcap').value.trim();
+  const price=parseFloat(document.getElementById('medprice').value)||0;
+  const ext=pendingMedFile.name.split('.').pop();
+  const path='media/'+me.id+'/'+Date.now()+'.'+ext;
+  const{data:ud,error}=await sb.storage.from('chat-images').upload(path,pendingMedFile,{upsert:true});
+  if(error){alert('Upload failed: '+error.message);return;}
+  const{data:ul}=sb.storage.from('chat-images').getPublicUrl(path);
+  const{error:insErr}=await sb.from('lc_media').insert({creator_id:me.id,media_url:ul.publicUrl,media_type:pendingMedType,caption:cap,price});
+  if(insErr){alert('Error: '+insErr.message);return;}
+  cUpload();
+  alert('✅ Posted!');
+  loadMediaFeed();
+}
+
 // ── NAVIGATION ──
 function openDrawer(){
   document.getElementById('drawer').classList.add('show');
@@ -1767,6 +1876,7 @@ function showPage(name){
   const btn=document.getElementById('bnt-'+name);
   if(btn)btn.classList.add('on');
   if(name==='wallet')loadWallet();
+  if(name==='media')loadMediaFeed();
 }
 
 function closePage(name){
@@ -1818,7 +1928,7 @@ async function submitCreator(){
 
 // Intercept browser back button
 window.addEventListener('popstate', function(e){
-  const modals=['vipmod','mpmod','pvmod','sgmod','gsmod','gmod','dmod','pinmod','stkmod','depmod','wdmod','sendmod'];
+  const modals=['vipmod','mpmod','pvmod','sgmod','gsmod','gmod','dmod','pinmod','stkmod','depmod','wdmod','sendmod','uploadmod'];
   for(const id of modals){
     const m=document.getElementById(id);
     if(m&&m.classList.contains('show')){
