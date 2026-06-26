@@ -164,10 +164,10 @@ input::placeholder{color:var(--t3);}
 #ctxmenu .divider{height:1px;background:var(--bd);margin:3px 0;}
 .mt{font-size:10px;color:var(--t3);margin-top:2px;}
 .mrow.me .mt{text-align:right;}
-.ibar{padding:10px 12px;border-top:1px solid var(--bd);background:var(--s1);display:flex;align-items:flex-end;gap:8px;flex-shrink:0;position:sticky;bottom:0;}
-.iw{flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:12px;display:flex;align-items:flex-end;}
+.ibar{padding:10px 12px;border-top:1px solid var(--bd);background:var(--s1);display:flex;align-items:flex-end;gap:8px;flex-shrink:0;position:sticky;bottom:0;max-width:100%;overflow:hidden;box-sizing:border-box;}
+.iw{flex:1;min-width:0;background:var(--s2);border:1px solid var(--bd);border-radius:12px;display:flex;align-items:flex-end;}
 .iw:focus-within{border-color:var(--ac);}
-textarea.ti2{flex:1;background:none;border:none;padding:10px 12px;color:var(--tx);font-size:14px;outline:none;resize:none;max-height:120px;line-height:1.5;font-family:inherit;}
+textarea.ti2{flex:1;min-width:0;background:none;border:none;padding:10px 12px;color:var(--tx);font-size:14px;outline:none;resize:none;max-height:120px;line-height:1.5;font-family:inherit;}
 textarea.ti2::placeholder{color:var(--t3);}
 .imgb{padding:7px 9px;background:none;border:none;color:var(--t2);cursor:pointer;font-size:17px;}
 .sndb{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--ac),var(--ac2));border:none;color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -942,23 +942,27 @@ async function lM(cid){
   if(error){area.innerHTML='<p style="text-align:center;color:var(--t3);padding:20px;font-size:13px;">'+error.message+'</p>';return;}
   if(!msgs?.length){area.innerHTML='<p style="text-align:center;color:var(--t3);padding:20px;font-size:13px;">No messages yet. Say hello! 👋</p>';return;}
   const uids=[...new Set(msgs.map(m=>m.sender_id).filter(Boolean))];
-  if(uids.length){
-    const{data:ps}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').in('id',uids);
-    (ps||[]).forEach(p=>pCache[p.id]=p);
-    const missing=uids.filter(u=>!pCache[u]);
-    if(missing.length){await Promise.all(missing.map(u=>ensureProfile(u)));}
-  }
+  try{
+    if(uids.length){
+      const{data:ps}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').in('id',uids);
+      (ps||[]).forEach(p=>pCache[p.id]=p);
+      const missing=uids.filter(u=>!pCache[u]);
+      if(missing.length){await Promise.all(missing.map(u=>ensureProfile(u).catch(()=>null)));}
+    }
+  }catch(e){}
   const mids=msgs.map(m=>m.id);
   let rxMap={};
-  if(mids.length){
-    const{data:rx}=await sb.from('lc_reactions').select('message_id,user_id,emoji').in('message_id',mids);
-    (rx||[]).forEach(r=>{
-      if(!rxMap[r.message_id])rxMap[r.message_id]={};
-      if(!rxMap[r.message_id][r.emoji])rxMap[r.message_id][r.emoji]={count:0,mine:false};
-      rxMap[r.message_id][r.emoji].count++;
-      if(r.user_id===me.id)rxMap[r.message_id][r.emoji].mine=true;
-    });
-  }
+  try{
+    if(mids.length){
+      const{data:rx}=await sb.from('lc_reactions').select('message_id,user_id,emoji').in('message_id',mids);
+      (rx||[]).forEach(r=>{
+        if(!rxMap[r.message_id])rxMap[r.message_id]={};
+        if(!rxMap[r.message_id][r.emoji])rxMap[r.message_id][r.emoji]={count:0,mine:false};
+        rxMap[r.message_id][r.emoji].count++;
+        if(r.user_id===me.id)rxMap[r.message_id][r.emoji].mine=true;
+      });
+    }
+  }catch(e){}
   pinnedMsgs=msgs.filter(m=>m.pinned_at&&!m.deleted_for_everyone);
   updatePinBar();
   const ig=cc?.type==='group';
@@ -975,13 +979,19 @@ async function lM(cid){
 async function ensureProfile(uid){
   if(!uid)return null;
   if(pCache[uid])return pCache[uid];
-  let{data:pp}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').eq('id',uid).maybeSingle();
+  let pp=null;
+  try{
+    const res=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').eq('id',uid).maybeSingle();
+    pp=res?.data||null;
+  }catch(e){pp=null;}
   if(!pp){
     const lid='LC-'+Math.floor(100000+Math.random()*900000);
     const cols=['#6c63ff','#ff6b81','#43e97b','#f7971e','#2196f3','#e91e63'];
     const fallback={id:uid,liquid_id:lid,avatar_color:cols[Math.floor(Math.random()*cols.length)]};
-    const{data:created}=await sb.from('profiles').insert(fallback).select().maybeSingle().catch(()=>({data:null}));
-    pp=created||fallback;
+    try{
+      const res=await sb.from('profiles').insert(fallback).select().maybeSingle();
+      pp=res?.data||fallback;
+    }catch(e){pp=fallback;}
   }
   if(pp)pCache[pp.id]=pp;
   return pp||null;
