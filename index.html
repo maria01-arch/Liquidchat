@@ -413,6 +413,7 @@ textarea.ti2::placeholder{color:var(--t3);}
     <button class="dri" onclick="closeDrawer();oSettings('creator')"><span class="dric">🎨</span>Apply for Creator</button>
     <button class="dri" onclick="closeDrawer();oSettings('help')"><span class="dric">❓</span>Help</button>
     <button class="dri" onclick="testNotif()"><span class="dric">🔔</span>Test Notification</button>
+    <button class="dri" onclick="closeDrawer();oAdminLogin()"><span class="dric">🛡️</span>Admin</button>
     <div class="drdiv"></div>
     <button class="dri red" onclick="closeDrawer();doOut()"><span class="dric">🚪</span>Sign Out</button>
   </div>
@@ -459,6 +460,18 @@ textarea.ti2::placeholder{color:var(--t3);}
     <div class="sl">Transaction History</div>
     <div id="walHist" style="display:flex;flex-direction:column;gap:8px;"></div>
   </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="page" id="page-admin">
+  <div class="pgh"><div class="bk" onclick="closePage('admin')">←</div><h2>🛡️ Admin Panel</h2></div>
+  <div style="display:flex;gap:6px;padding:10px 16px 0;flex-wrap:wrap;flex-shrink:0;">
+    <button class="jo on" id="adminTabDep" onclick="showAdminTab('dep')" style="flex:1;">Deposits</button>
+    <button class="jo" id="adminTabWd" onclick="showAdminTab('wd')" style="flex:1;">Withdrawals</button>
+    <button class="jo" id="adminTabUsers" onclick="showAdminTab('users')" style="flex:1;">Users</button>
+    <button class="jo" id="adminTabDisp" onclick="showAdminTab('disp')" style="flex:1;">Disputes</button>
+  </div>
+  <div class="pgb" id="adminBody" style="padding:12px 16px;"></div>
 </div>
 
 <!-- SETTINGS PAGE -->
@@ -609,10 +622,12 @@ textarea.ti2::placeholder{color:var(--t3);}
     <input type="number" id="lstamt" placeholder="e.g. 50" min="1" step="0.01">
     <div class="lbl">Accepted Payment Method</div>
     <input type="text" id="lstmethod" placeholder="e.g. Bitcoin, Bank Transfer, Cash">
+    <div class="lbl">Payment Details (account/wallet info buyers will pay to)</div>
+    <input type="text" id="lstdetails" placeholder="e.g. Bank: GTBank, Acct: 1234567890, Name: John Doe">
     <div class="lbl">Note (optional)</div>
     <input type="text" id="lstnote" placeholder="Rate, instructions, availability...">
     <div style="background:rgba(108,99,255,.1);border:1px solid var(--ac);border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--t2);line-height:1.6;">
-      Your funds are only locked once a buyer initiates a trade — not when you list.
+      This amount will be locked from your balance immediately and held in escrow until sold or you cancel the listing.
     </div>
     <div class="macts"><button class="mb s" onclick="cCreateListing()">Cancel</button><button class="mb p" onclick="submitListing()">Post Listing</button></div>
   </div>
@@ -1050,12 +1065,13 @@ async function lM(cid){
 async function ensureProfile(uid){
   if(!uid)return null;
   if(pCache[uid])return pCache[uid];
-  let pp=null;
+  let pp=null,fetchFailed=false;
   try{
     const res=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').eq('id',uid).maybeSingle();
+    if(res.error)fetchFailed=true;
     pp=res?.data||null;
-  }catch(e){pp=null;}
-  if(!pp){
+  }catch(e){fetchFailed=true;}
+  if(!pp&&!fetchFailed){
     const lid='LC-'+Math.floor(100000+Math.random()*900000);
     const cols=['#6c63ff','#ff6b81','#43e97b','#f7971e','#2196f3','#e91e63'];
     const fallback={id:uid,liquid_id:lid,avatar_color:cols[Math.floor(Math.random()*cols.length)]};
@@ -1064,7 +1080,7 @@ async function ensureProfile(uid){
       pp=res?.data||fallback;
     }catch(e){pp=fallback;}
   }
-  if(pp)pCache[pp.id]=pp;
+  if(pp&&!fetchFailed)pCache[pp.id]=pp;
   return pp||null;
 }
 
@@ -1405,6 +1421,7 @@ function copyText(text){
 }
 async function viewSenderProfile(uid){
   if(!uid)return;
+  delete pCache[uid];
   const p=await ensureProfile(uid);
   shP(p,uid!==me.id);
 }
@@ -1931,8 +1948,10 @@ function renderListingCard(l){
     '</div>';
 }
 function oCreateListing(){
+  if(!mp?.is_vip){alert('⭐ Selling on the P2P market requires VIP.');return;}
   document.getElementById('lstamt').value='';
   document.getElementById('lstmethod').value='';
+  document.getElementById('lstdetails').value='';
   document.getElementById('lstnote').value='';
   document.getElementById('lstAvail').textContent='$'+Number(mp?.balance||0).toFixed(2);
   document.getElementById('lstmod').classList.add('show');history.pushState(null,'',window.location.href);
@@ -1941,28 +1960,44 @@ function cCreateListing(){document.getElementById('lstmod').classList.remove('sh
 async function submitListing(){
   const amt=parseFloat(document.getElementById('lstamt').value);
   const method=document.getElementById('lstmethod').value.trim();
+  const details=document.getElementById('lstdetails').value.trim();
   const note=document.getElementById('lstnote').value.trim();
   const bal=Number(mp?.balance||0);
   if(!amt||amt<=0){alert('Please enter a valid amount.');return;}
   if(!method){alert('Please enter a payment method.');return;}
+  if(!details){alert('Please enter your payment details so buyers know where to pay.');return;}
   if(amt>bal){alert('You cannot list more than your available balance.');return;}
-  const{error}=await sb.from('lc_p2p_listings').insert({seller_id:me.id,amount:amt,remaining:amt,payment_method:method,note,status:'open'});
-  if(error){alert('Error: '+error.message);return;}
+  const{error:e1}=await sb.from('profiles').update({balance:bal-amt}).eq('id',me.id);
+  if(e1){alert('Error: '+e1.message);return;}
+  const{error}=await sb.from('lc_p2p_listings').insert({seller_id:me.id,amount:amt,remaining:amt,payment_method:method,payment_details:details,note,status:'open'});
+  if(error){await sb.from('profiles').update({balance:bal}).eq('id',me.id);alert('Error: '+error.message);return;}
+  if(mp)mp.balance=bal-amt;
   cCreateListing();
-  alert('✅ Listing posted!');
+  alert('✅ Listing posted! $'+amt.toFixed(2)+' is now held in escrow.');
   loadP2PMarket();
 }
 async function cancelListing(id){
-  if(!confirm('Cancel this listing?'))return;
-  await sb.from('lc_p2p_listings').update({status:'closed'}).eq('id',id).eq('seller_id',me.id);
+  if(!confirm('Cancel this listing? Your remaining unsold escrow will be refunded to your balance.'))return;
+  const{data:l,error}=await sb.from('lc_p2p_listings').select('*').eq('id',id).eq('seller_id',me.id).maybeSingle();
+  if(error||!l){alert('Listing not found.');return;}
+  const refund=Number(l.remaining);
+  const bal=Number(mp?.balance||0);
+  if(refund>0){
+    const{error:e1}=await sb.from('profiles').update({balance:bal+refund}).eq('id',me.id);
+    if(e1){alert('Error: '+e1.message);return;}
+    if(mp)mp.balance=bal+refund;
+  }
+  await sb.from('lc_p2p_listings').update({status:'closed',remaining:0}).eq('id',id);
+  alert('Listing cancelled. $'+refund.toFixed(2)+' refunded to your balance.');
   loadP2PMarket();
 }
 function oBuy(listingId){
+  if(!mp?.is_vip){alert('⭐ Trading on the P2P market requires VIP.');return;}
   sb.from('lc_p2p_listings').select('*').eq('id',listingId).maybeSingle().then(({data:l})=>{
     if(!l)return;
     activeListing=l;
     const p=pCache[l.seller_id]||null;
-    document.getElementById('buyListingInfo').innerHTML='Seller: <b>'+esc(nm(p))+'</b><br>Available: <b>$'+Number(l.remaining).toFixed(2)+'</b><br>Payment: <b>'+esc(l.payment_method)+'</b>';
+    document.getElementById('buyListingInfo').innerHTML='Seller: <b>'+esc(nm(p))+'</b><br>Available: <b>$'+Number(l.remaining).toFixed(2)+'</b><br>Method: <b>'+esc(l.payment_method)+'</b><br><div style="margin-top:6px;padding:8px;background:var(--s3);border-radius:7px;word-break:break-word;">📋 '+esc(l.payment_details||'')+'</div>';
     document.getElementById('buyamt').value='';
     document.getElementById('buyamt').max=l.remaining;
     document.getElementById('buymod').classList.add('show');history.pushState(null,'',window.location.href);
@@ -1971,22 +2006,17 @@ function oBuy(listingId){
 function cBuy(){document.getElementById('buymod').classList.remove('show');activeListing=null;}
 async function submitBuyOrder(){
   if(!activeListing)return;
+  if(!mp?.is_vip){alert('⭐ Trading on the P2P market requires VIP.');return;}
   const amt=parseFloat(document.getElementById('buyamt').value);
   if(!amt||amt<=0){alert('Please enter a valid amount.');return;}
   if(amt>Number(activeListing.remaining)){alert('Amount exceeds what is available.');return;}
   if(activeListing.seller_id===me.id){alert('You cannot buy your own listing.');return;}
-  const{data:sellerProf,error:sErr}=await sb.from('profiles').select('balance').eq('id',activeListing.seller_id).maybeSingle();
-  if(sErr){alert('Error: '+sErr.message);return;}
-  const sellerBal=Number(sellerProf?.balance||0);
-  if(amt>sellerBal){alert('Seller no longer has sufficient balance for this trade.');return;}
-  const{error:e1}=await sb.from('profiles').update({balance:sellerBal-amt}).eq('id',activeListing.seller_id);
-  if(e1){alert('Error: '+e1.message);return;}
   const{error:e2}=await sb.from('lc_p2p_listings').update({remaining:Number(activeListing.remaining)-amt}).eq('id',activeListing.id);
-  if(e2){await sb.from('profiles').update({balance:sellerBal}).eq('id',activeListing.seller_id);alert('Error: '+e2.message);return;}
+  if(e2){alert('Error: '+e2.message);return;}
   const{error:e3}=await sb.from('lc_p2p_orders').insert({listing_id:activeListing.id,seller_id:activeListing.seller_id,buyer_id:me.id,amount:amt,status:'pending'});
-  if(e3){alert('Error: '+e3.message);return;}
+  if(e3){await sb.from('lc_p2p_listings').update({remaining:Number(activeListing.remaining)}).eq('id',activeListing.id);alert('Error: '+e3.message);return;}
   cBuy();
-  alert('✅ Trade started! The seller\'s funds are now in escrow. Pay them using the listed method, then mark the trade as paid.');
+  alert('✅ Trade started! The seller\'s funds are already held in escrow. Pay them using the details shown, then mark the trade as paid.');
   showP2PTab('orders');
 }
 async function loadMyOrders(){
@@ -1997,9 +2027,15 @@ async function loadMyOrders(){
   if(!orders?.length){body.innerHTML='<div class="coming"><div class="ci2">📋</div><h3>No trades yet</h3><p>Trades you start or receive will show up here.</p></div>';return;}
   const uids=[...new Set(orders.flatMap(o=>[o.buyer_id,o.seller_id]))];
   await Promise.all(uids.map(uid=>ensureProfile(uid)));
-  body.innerHTML=orders.map(o=>renderOrderCard(o)).join('');
+  const listingIds=[...new Set(orders.map(o=>o.listing_id).filter(Boolean))];
+  let listingMap={};
+  if(listingIds.length){
+    const{data:lsts}=await sb.from('lc_p2p_listings').select('id,payment_method,payment_details').in('id',listingIds);
+    (lsts||[]).forEach(l=>listingMap[l.id]=l);
+  }
+  body.innerHTML=orders.map(o=>renderOrderCard(o,listingMap[o.listing_id])).join('');
 }
-function renderOrderCard(o){
+function renderOrderCard(o,listing){
   const iAmSeller=o.seller_id===me.id;
   const other=pCache[iAmSeller?o.buyer_id:o.seller_id]||null;
   let actions='';
@@ -2013,6 +2049,7 @@ function renderOrderCard(o){
     '<span class="p2pstatus '+o.status+'">'+o.status+'</span>'+
     '</div>'+
     '<div class="p2pamt">$'+Number(o.amount).toFixed(2)+'</div>'+
+    (listing?'<div style="font-size:12px;color:var(--t2);margin:6px 0;">💳 '+esc(listing.payment_method||'')+'<div style="margin-top:4px;padding:8px;background:var(--s3);border-radius:7px;word-break:break-word;font-size:12px;">📋 '+esc(listing.payment_details||'')+'</div></div>':'')+
     '<div style="font-size:11px;color:var(--t3);margin-bottom:10px;">'+ft(o.created_at)+'</div>'+
     (actions?'<div style="display:flex;gap:7px;flex-wrap:wrap;">'+actions+'</div>':'')+
     '</div>';
@@ -2040,17 +2077,14 @@ async function releaseFunds(id){
   loadMyOrders();
 }
 async function cancelOrder(id){
-  if(!confirm('Cancel this trade and refund the escrowed amount to yourself?'))return;
+  if(!confirm('Cancel this trade? The escrowed amount returns to your listing for resale.'))return;
   const{data:o,error}=await sb.from('lc_p2p_orders').select('*').eq('id',id).eq('seller_id',me.id).maybeSingle();
   if(error||!o){alert('Order not found.');return;}
   if(o.status==='completed'){alert('This trade is already completed.');return;}
-  const{data:sellerProf}=await sb.from('profiles').select('balance').eq('id',o.seller_id).maybeSingle();
-  const sellerBal=Number(sellerProf?.balance||0);
-  await sb.from('profiles').update({balance:sellerBal+Number(o.amount)}).eq('id',o.seller_id);
   await sb.from('lc_p2p_orders').update({status:'cancelled'}).eq('id',id);
   const{data:lst}=await sb.from('lc_p2p_listings').select('remaining').eq('id',o.listing_id).maybeSingle();
   if(lst)await sb.from('lc_p2p_listings').update({remaining:Number(lst.remaining)+Number(o.amount),status:'open'}).eq('id',o.listing_id);
-  alert('Trade cancelled and refunded.');
+  alert('Trade cancelled. Funds remain escrowed in your listing for resale.');
   loadMyOrders();
 }
 async function reportOrder(id){
@@ -2058,6 +2092,179 @@ async function reportOrder(id){
   await sb.from('lc_p2p_orders').update({status:'disputed'}).eq('id',id);
   alert('⚠️ Reported. Our team will review this trade.');
   loadMyOrders();
+}
+
+// ── ADMIN PANEL ──
+let isAdmin=false,adminTab='dep';
+function oAdminLogin(){
+  const pw=prompt('Enter admin password:');
+  if(pw===null)return;
+  if(pw!=='samzyb554'){alert('❌ Access denied.');return;}
+  isAdmin=true;
+  openAdminPanel();
+}
+function openAdminPanel(){
+  document.getElementById('app').classList.remove('show');
+  ['p2p','media','sub','wallet'].forEach(p=>document.getElementById('page-'+p).classList.remove('show'));
+  document.getElementById('page-settings').classList.remove('show');
+  document.getElementById('page-admin').classList.add('show');
+  document.querySelectorAll('.bnt').forEach(b=>b.classList.remove('on'));
+  history.pushState(null,'',window.location.href);
+  showAdminTab('dep');
+}
+function showAdminTab(tab){
+  adminTab=tab;
+  document.getElementById('adminTabDep').classList.toggle('on',tab==='dep');
+  document.getElementById('adminTabWd').classList.toggle('on',tab==='wd');
+  document.getElementById('adminTabUsers').classList.toggle('on',tab==='users');
+  document.getElementById('adminTabDisp').classList.toggle('on',tab==='disp');
+  if(tab==='dep')loadAdminDeposits();
+  else if(tab==='wd')loadAdminWithdrawals();
+  else if(tab==='users')loadAdminUsersTab();
+  else loadAdminDisputes();
+}
+async function loadAdminDeposits(){
+  const body=document.getElementById('adminBody');
+  body.innerHTML='<div class="ld"><span></span><span></span><span></span></div>';
+  const{data:txs,error}=await sb.from('wallet_transactions').select('*').eq('type','deposit').eq('status','pending').order('created_at',{ascending:false});
+  if(error){body.innerHTML='<p style="color:var(--t3);padding:20px;text-align:center;font-size:13px;">'+error.message+'</p>';return;}
+  if(!txs?.length){body.innerHTML='<div class="coming"><div class="ci2">⬇️</div><h3>No pending deposits</h3></div>';return;}
+  const uids=[...new Set(txs.map(t=>t.user_id))];
+  await Promise.all(uids.map(uid=>ensureProfile(uid)));
+  body.innerHTML=txs.map(t=>{
+    const p=pCache[t.user_id]||null;
+    return'<div class="p2pcard">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'+avH(p,28,'uiav')+'<div style="flex:1;"><div style="font-weight:700;font-size:13px;">'+esc(nm(p))+'</div><div style="font-size:11px;color:var(--t3);">'+esc(p?.liquid_id||'')+'</div></div></div>'+
+      '<div class="p2pamt">$'+Number(t.amount).toFixed(2)+'</div>'+
+      '<div style="font-size:12px;color:var(--t2);margin:6px 0;">Method: '+esc(t.method||'')+'<br>TXID: '+esc(t.tx_reference||'')+'</div>'+
+      '<div style="display:flex;gap:7px;"><button class="mb p" onclick="adminApproveDeposit(\''+t.id+'\',\''+t.user_id+'\','+t.amount+')">✅ Approve</button><button class="mb s" style="color:var(--red);" onclick="adminRejectDeposit(\''+t.id+'\')">❌ Reject</button></div>'+
+      '</div>';
+  }).join('');
+}
+async function adminApproveDeposit(txId,userId,amount){
+  if(!confirm('Approve this deposit of $'+Number(amount).toFixed(2)+'?'))return;
+  const{data:p}=await sb.from('profiles').select('balance').eq('id',userId).maybeSingle();
+  const bal=Number(p?.balance||0);
+  await sb.from('profiles').update({balance:bal+Number(amount)}).eq('id',userId);
+  await sb.from('wallet_transactions').update({status:'completed'}).eq('id',txId);
+  alert('✅ Approved!');
+  loadAdminDeposits();
+}
+async function adminRejectDeposit(txId){
+  if(!confirm('Reject this deposit?'))return;
+  await sb.from('wallet_transactions').update({status:'rejected'}).eq('id',txId);
+  loadAdminDeposits();
+}
+async function loadAdminWithdrawals(){
+  const body=document.getElementById('adminBody');
+  body.innerHTML='<div class="ld"><span></span><span></span><span></span></div>';
+  const{data:txs,error}=await sb.from('wallet_transactions').select('*').eq('type','withdraw').eq('status','pending').order('created_at',{ascending:false});
+  if(error){body.innerHTML='<p style="color:var(--t3);padding:20px;text-align:center;font-size:13px;">'+error.message+'</p>';return;}
+  if(!txs?.length){body.innerHTML='<div class="coming"><div class="ci2">⬆️</div><h3>No pending withdrawals</h3></div>';return;}
+  const uids=[...new Set(txs.map(t=>t.user_id))];
+  await Promise.all(uids.map(uid=>ensureProfile(uid)));
+  body.innerHTML=txs.map(t=>{
+    const p=pCache[t.user_id]||null;
+    return'<div class="p2pcard">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'+avH(p,28,'uiav')+'<div style="flex:1;"><div style="font-weight:700;font-size:13px;">'+esc(nm(p))+'</div><div style="font-size:11px;color:var(--t3);">'+esc(p?.liquid_id||'')+'</div></div></div>'+
+      '<div class="p2pamt">$'+Number(t.amount).toFixed(2)+'</div>'+
+      '<div style="font-size:12px;color:var(--t2);margin:6px 0;">Method: '+esc(t.method||'')+'<br>Address: '+esc(t.destination||'')+'</div>'+
+      '<div style="display:flex;gap:7px;"><button class="mb p" onclick="adminApproveWithdrawal(\''+t.id+'\')">✅ Mark Sent</button><button class="mb s" style="color:var(--red);" onclick="adminRejectWithdrawal(\''+t.id+'\',\''+t.user_id+'\','+t.amount+')">❌ Reject & Refund</button></div>'+
+      '</div>';
+  }).join('');
+}
+async function adminApproveWithdrawal(txId){
+  if(!confirm('Mark this withdrawal as sent/completed?'))return;
+  await sb.from('wallet_transactions').update({status:'completed'}).eq('id',txId);
+  alert('✅ Marked completed!');
+  loadAdminWithdrawals();
+}
+async function adminRejectWithdrawal(txId,userId,amount){
+  if(!confirm('Reject and refund $'+Number(amount).toFixed(2)+' back to the user?'))return;
+  const{data:p}=await sb.from('profiles').select('balance').eq('id',userId).maybeSingle();
+  const bal=Number(p?.balance||0);
+  await sb.from('profiles').update({balance:bal+Number(amount)}).eq('id',userId);
+  await sb.from('wallet_transactions').update({status:'rejected'}).eq('id',txId);
+  alert('Rejected and refunded.');
+  loadAdminWithdrawals();
+}
+function loadAdminUsersTab(){
+  document.getElementById('adminBody').innerHTML='<input type="text" id="adminUserSearch" placeholder="Search name, username, or LC-ID..." oninput="adminSearchUsers()" style="margin-bottom:10px;"><div id="adminUserResults"></div>';
+}
+async function adminSearchUsers(){
+  const q=document.getElementById('adminUserSearch').value.trim();
+  const results=document.getElementById('adminUserResults');
+  if(!q){results.innerHTML='';return;}
+  const{data:us}=await sb.from('profiles').select('*').or('full_name.ilike.%'+q+'%,username.ilike.%'+q+'%,liquid_id.ilike.%'+q+'%').limit(15);
+  if(!us?.length){results.innerHTML='<p style="color:var(--t3);font-size:12px;padding:7px;">No users found.</p>';return;}
+  results.innerHTML=us.map(u=>{
+    return'<div class="p2pcard">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'+avH(u,28,'uiav')+'<div style="flex:1;"><div style="font-weight:700;font-size:13px;">'+esc(nm(u))+(u.is_vip?' ⭐':'')+(u.is_creator?' 🎨':'')+'</div><div style="font-size:11px;color:var(--t3);">'+esc(u.liquid_id||'')+' · Balance: $'+Number(u.balance||0).toFixed(2)+'</div></div></div>'+
+      '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;">'+
+      '<button class="mb '+(u.is_vip?'s':'p')+'" onclick="adminToggleVip(\''+u.id+'\','+(!u.is_vip)+')">'+(u.is_vip?'Remove VIP':'Make VIP')+'</button>'+
+      '<button class="mb '+(u.is_creator?'s':'p')+'" onclick="adminToggleCreator(\''+u.id+'\','+(!u.is_creator)+')">'+(u.is_creator?'Remove Creator':'Make Creator')+'</button>'+
+      '</div>'+
+      '<div style="display:flex;gap:7px;"><input type="number" id="adj_'+u.id+'" placeholder="Adjust balance ±" style="margin:0;flex:1;"><button class="mb p" style="flex:0;width:auto;padding:9px 14px;" onclick="adminAdjustBalance(\''+u.id+'\')">Apply</button></div>'+
+      '</div>';
+  }).join('');
+}
+async function adminToggleVip(uid,val){
+  await sb.from('profiles').update({is_vip:val}).eq('id',uid);
+  alert(val?'✅ User is now VIP.':'VIP removed.');
+  adminSearchUsers();
+}
+async function adminToggleCreator(uid,val){
+  await sb.from('profiles').update({is_creator:val}).eq('id',uid);
+  alert(val?'✅ User is now an approved Creator.':'Creator status removed.');
+  adminSearchUsers();
+}
+async function adminAdjustBalance(uid){
+  const input=document.getElementById('adj_'+uid);
+  const delta=parseFloat(input.value);
+  if(!delta){alert('Enter a non-zero amount.');return;}
+  const{data:p}=await sb.from('profiles').select('balance').eq('id',uid).maybeSingle();
+  const bal=Number(p?.balance||0);
+  await sb.from('profiles').update({balance:bal+delta}).eq('id',uid);
+  alert('✅ Balance adjusted by '+(delta>0?'+':'')+delta.toFixed(2));
+  adminSearchUsers();
+}
+async function loadAdminDisputes(){
+  const body=document.getElementById('adminBody');
+  body.innerHTML='<div class="ld"><span></span><span></span><span></span></div>';
+  const{data:orders,error}=await sb.from('lc_p2p_orders').select('*').eq('status','disputed').order('created_at',{ascending:false});
+  if(error){body.innerHTML='<p style="color:var(--t3);padding:20px;text-align:center;font-size:13px;">'+error.message+'</p>';return;}
+  if(!orders?.length){body.innerHTML='<div class="coming"><div class="ci2">⚠️</div><h3>No disputes</h3></div>';return;}
+  const uids=[...new Set(orders.flatMap(o=>[o.buyer_id,o.seller_id]))];
+  await Promise.all(uids.map(uid=>ensureProfile(uid)));
+  body.innerHTML=orders.map(o=>{
+    const buyer=pCache[o.buyer_id]||null,seller=pCache[o.seller_id]||null;
+    return'<div class="p2pcard">'+
+      '<div style="font-size:12px;color:var(--t3);margin-bottom:6px;">Seller: <b style="color:var(--tx);">'+esc(nm(seller))+'</b> → Buyer: <b style="color:var(--tx);">'+esc(nm(buyer))+'</b></div>'+
+      '<div class="p2pamt">$'+Number(o.amount).toFixed(2)+'</div>'+
+      '<div style="font-size:11px;color:var(--t3);margin-bottom:10px;">'+ft(o.created_at)+'</div>'+
+      '<div style="display:flex;gap:7px;flex-wrap:wrap;"><button class="mb p" onclick="adminForceRelease(\''+o.id+'\')">🔓 Release to Buyer</button><button class="mb s" onclick="adminForceRefund(\''+o.id+'\')">↩️ Refund to Listing</button></div>'+
+      '</div>';
+  }).join('');
+}
+async function adminForceRelease(id){
+  if(!confirm('Force-release escrow to the buyer?'))return;
+  const{data:o}=await sb.from('lc_p2p_orders').select('*').eq('id',id).maybeSingle();
+  if(!o)return;
+  const{data:bp}=await sb.from('profiles').select('balance').eq('id',o.buyer_id).maybeSingle();
+  await sb.from('profiles').update({balance:Number(bp?.balance||0)+Number(o.amount)}).eq('id',o.buyer_id);
+  await sb.from('lc_p2p_orders').update({status:'completed'}).eq('id',id);
+  alert('✅ Released to buyer.');
+  loadAdminDisputes();
+}
+async function adminForceRefund(id){
+  if(!confirm('Refund escrow back to the listing for resale?'))return;
+  const{data:o}=await sb.from('lc_p2p_orders').select('*').eq('id',id).maybeSingle();
+  if(!o)return;
+  await sb.from('lc_p2p_orders').update({status:'cancelled'}).eq('id',id);
+  const{data:lst}=await sb.from('lc_p2p_listings').select('remaining').eq('id',o.listing_id).maybeSingle();
+  if(lst)await sb.from('lc_p2p_listings').update({remaining:Number(lst.remaining)+Number(o.amount),status:'open'}).eq('id',o.listing_id);
+  alert('Refunded to listing.');
+  loadAdminDisputes();
 }
 
 // ── NAVIGATION ──
@@ -2152,6 +2359,12 @@ window.addEventListener('popstate', function(e){
   const sp=document.getElementById('page-settings');
   if(sp&&sp.classList.contains('show')){
     closePage('settings');
+    history.pushState(null,'',window.location.href);
+    return;
+  }
+  const ap=document.getElementById('page-admin');
+  if(ap&&ap.classList.contains('show')){
+    closePage('admin');
     history.pushState(null,'',window.location.href);
     return;
   }
