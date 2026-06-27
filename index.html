@@ -413,7 +413,7 @@ textarea.ti2::placeholder{color:var(--t3);}
     <button class="dri" onclick="closeDrawer();oSettings('creator')"><span class="dric">🎨</span>Apply for Creator</button>
     <button class="dri" onclick="closeDrawer();oSettings('help')"><span class="dric">❓</span>Help</button>
     <button class="dri" onclick="testNotif()"><span class="dric">🔔</span>Test Notification</button>
-    <button class="dri" onclick="closeDrawer();oAdminLogin()"><span class="dric">🛡️</span>Admin</button>
+    <button class="dri" id="adminDrawerBtn" style="display:none" onclick="closeDrawer();oAdminLogin()"><span class="dric">🛡️</span>Admin</button>
     <div class="drdiv"></div>
     <button class="dri red" onclick="closeDrawer();doOut()"><span class="dric">🚪</span>Sign Out</button>
   </div>
@@ -594,7 +594,7 @@ textarea.ti2::placeholder{color:var(--t3);}
 <!-- MY PROFILE -->
 <div class="ov" id="mpmod">
   <div class="mod">
-    <h3>👤 My Profile <span id="my-vip-badge" class="vip" style="display:none;font-size:13px;">★ VIP</span></h3>
+    <h3>👤 My Profile <span id="my-vip-badge" style="display:none;vertical-align:middle;">&nbsp;<svg viewBox="0 0 22 22" width="16" height="16" style="vertical-align:middle;"><circle cx="11" cy="11" r="11" fill="#00d26a"></circle><path d="M6.3 11.3l3 3 6.2-6.8" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></h3>
     <div style="text-align:center;margin-bottom:14px;">
       <div class="pav" id="mpav" style="margin-bottom:8px;"></div>
       <label style="background:var(--s2);border:1px dashed var(--ac);border-radius:9px;padding:8px 16px;color:var(--ac);font-size:12px;cursor:pointer;display:inline-block;" for="mpavf">📷 Change Photo</label>
@@ -744,7 +744,7 @@ textarea.ti2::placeholder{color:var(--t3);}
     <div style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px;">✅ Create group chats</div>
       <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px;">✅ Change your display name</div>
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px;">✅ Gold ★ VIP badge on profile</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px;">✅ Verified checkmark badge on profile</div>
       <div style="display:flex;align-items:center;gap:8px;padding:8px 0;font-size:13px;">✅ Priority support</div>
     </div>
     <div style="background:var(--s2);border-radius:12px;padding:14px;margin-bottom:14px;">
@@ -790,6 +790,10 @@ const STICKERS=[
 
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function nm(p){if(!p)return'Unknown';if(p.full_name)return p.full_name;if(p.username)return p.username;if(p.email)return p.email.split('@')[0];if(p.liquid_id)return p.liquid_id;return'Unknown';}
+function vipBadge(p){
+  if(!p?.is_vip)return'';
+  return'<svg viewBox="0 0 22 22" width="14" height="14" style="display:inline-block;vertical-align:middle;margin-left:3px;flex-shrink:0;"><circle cx="11" cy="11" r="11" fill="#00d26a"></circle><path d="M6.3 11.3l3 3 6.2-6.8" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+}
 function avH(p,sz,cls){
   const col=p?.avatar_color||'#6c63ff';
   const ini=(nm(p)||'?').slice(0,2).toUpperCase();
@@ -868,6 +872,8 @@ async function initApp(user){
   document.getElementById('drn').textContent=nm(prof)||user.email;
   document.getElementById('drid').textContent=prof?.liquid_id||'';
   document.getElementById('drem').textContent=user.email;
+  const adminBtn=document.getElementById('adminDrawerBtn');
+  if(adminBtn)adminBtn.style.display=(prof?.liquid_id==='LC-416810')?'flex':'none';
   await loadC();
   subRT();
   await hIL();
@@ -1233,7 +1239,7 @@ async function sDU(){
   dmr=us||[];
   const list=document.getElementById('dml');
   if(!dmr.length){list.innerHTML='<p style="color:var(--t3);font-size:12px;padding:7px;">No users found.</p>';return;}
-  list.innerHTML=dmr.map((u,i)=>'<div class="ui '+(sdmu?.id===u.id?'sel':'')+'" data-i="'+i+'" onclick="selDU(dmr[this.dataset.i])">'+avH(u,32,'uiav')+'<div><div class="uin">'+esc(nm(u))+(u.is_vip?' ★':'')+'</div><div class="uis">'+esc(u.liquid_id||'')+'</div></div><span class="uck">✓</span></div>').join('');
+  list.innerHTML=dmr.map((u,i)=>'<div class="ui '+(sdmu?.id===u.id?'sel':'')+'" data-i="'+i+'" onclick="selDU(dmr[this.dataset.i])">'+avH(u,32,'uiav')+'<div><div class="uin">'+esc(nm(u))+vipBadge(u)+'</div><div class="uis">'+esc(u.liquid_id||'')+'</div></div><span class="uck">✓</span></div>').join('');
 }
 
 function selDU(u){sdmu=u;sDU();}
@@ -1312,9 +1318,8 @@ async function oGS(){
   document.getElementById('gsmod').classList.add('show');history.pushState(null,'',window.location.href);
   const{data:rawM}=await sb.from('lc_members').select('*').eq('conversation_id',cc.id);
   const uids=(rawM||[]).map(m=>m.user_id);
-  let pp={};
-  if(uids.length){const{data:ps}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').in('id',uids);(ps||[]).forEach(p=>pp[p.id]=p);}
-  const mems=(rawM||[]).map(m=>({...m,profiles:pp[m.user_id]||null}));
+  if(uids.length)await Promise.all(uids.map(uid=>ensureProfile(uid)));
+  const mems=(rawM||[]).map(m=>({...m,profiles:pCache[m.user_id]||null}));
   const crid=cc.created_by;
   document.getElementById('gsml').innerHTML=mems.map(m=>{
     const p=m.profiles;const ism=m.user_id===me.id;const isc=m.user_id===crid;
@@ -1324,10 +1329,9 @@ async function oGS(){
     '</div>';
   }).join('');
   const{data:rawR}=await sb.from('lc_join_requests').select('*').eq('conversation_id',cc.id).eq('status','pending');
-  let rp={};
-  if(rawR?.length){const ruids=rawR.map(r=>r.user_id);const{data:rps}=await sb.from('profiles').select('id,full_name,username,avatar_url,avatar_color,liquid_id').in('id',ruids);(rps||[]).forEach(p=>rp[p.id]=p);}
+  if(rawR?.length)await Promise.all(rawR.map(r=>ensureProfile(r.user_id)));
   document.getElementById('gsrl').innerHTML=!rawR?.length?'<p style="color:var(--t3);font-size:11px;padding:5px;">No pending requests.</p>':rawR.map(r=>{
-    const p=rp[r.user_id];
+    const p=pCache[r.user_id]||null;
     return'<div class="ui">'+avH(p,32,'uiav')+'<div style="flex:1"><div class="uin">'+esc(nm(p))+'</div></div>'+
     '<div style="display:flex;gap:4px;"><button data-r="'+r.id+'" data-u="'+r.user_id+'" onclick="apR(this.dataset.r,this.dataset.u)" style="font-size:10px;padding:3px 6px;border-radius:5px;border:none;background:var(--ac);color:#fff;cursor:pointer;">Approve</button>'+
     '<button data-r="'+r.id+'" onclick="rjR(this.dataset.r)" style="font-size:10px;padding:3px 6px;border-radius:5px;border:1px solid var(--red);background:none;color:var(--red);cursor:pointer;">Reject</button></div></div>';
@@ -1400,7 +1404,7 @@ function shP(p,showMsg){
   vu=p;
   document.getElementById('pvc').innerHTML='<div class="pcard">'+
     (p?.avatar_url?'<div class="pav"><img src="'+esc(p.avatar_url)+'"></div>':'<div class="pav" style="background:'+(p?.avatar_color||'#6c63ff')+'">'+((nm(p)||'?').slice(0,2).toUpperCase())+'</div>')+
-    '<div class="pn">'+esc(nm(p))+(p?.is_vip?' <span class="vip">★ VIP</span>':'')+'</div>'+
+    '<div class="pn">'+esc(nm(p))+vipBadge(p)+'</div>'+
     '<div class="pid" style="display:flex;align-items:center;justify-content:center;gap:6px;">'+esc(p?.liquid_id||'')+(p?.liquid_id?'<button onclick="copyText(\''+esc(p.liquid_id)+'\')" style="background:none;border:none;color:var(--ac);cursor:pointer;font-size:12px;">📋</button>':'')+'</div>'+
     '<div style="font-size:11px;margin-top:4px;color:'+(isOnline(p)?'#3ddc84':'var(--t3)')+';">'+lastSeenText(p)+'</div>'+
     (p?.bio?'<div class="pf"><div class="pfl">Bio</div><div class="pfv">'+esc(p.bio)+'</div></div>':'')+
@@ -2199,7 +2203,7 @@ async function adminSearchUsers(){
   if(!us?.length){results.innerHTML='<p style="color:var(--t3);font-size:12px;padding:7px;">No users found.</p>';return;}
   results.innerHTML=us.map(u=>{
     return'<div class="p2pcard">'+
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'+avH(u,28,'uiav')+'<div style="flex:1;"><div style="font-weight:700;font-size:13px;">'+esc(nm(u))+(u.is_vip?' ⭐':'')+(u.is_creator?' 🎨':'')+'</div><div style="font-size:11px;color:var(--t3);">'+esc(u.liquid_id||'')+' · Balance: $'+Number(u.balance||0).toFixed(2)+'</div></div></div>'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'+avH(u,28,'uiav')+'<div style="flex:1;"><div style="font-weight:700;font-size:13px;">'+esc(nm(u))+vipBadge(u)+(u.is_creator?' 🎨':'')+'</div><div style="font-size:11px;color:var(--t3);">'+esc(u.liquid_id||'')+' · Balance: $'+Number(u.balance||0).toFixed(2)+'</div></div></div>'+
       '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;">'+
       '<button class="mb '+(u.is_vip?'s':'p')+'" onclick="adminToggleVip(\''+u.id+'\','+(!u.is_vip)+')">'+(u.is_vip?'Remove VIP':'Make VIP')+'</button>'+
       '<button class="mb '+(u.is_creator?'s':'p')+'" onclick="adminToggleCreator(\''+u.id+'\','+(!u.is_creator)+')">'+(u.is_creator?'Remove Creator':'Make Creator')+'</button>'+
